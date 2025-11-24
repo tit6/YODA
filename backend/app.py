@@ -23,12 +23,12 @@ def get_db_connection():
     """Créer une connexion à la base de données"""
     return pymysql.connect(**db_config)
 
-@app.route('/coucou')
+@app.route('/api/coucou')
 def hello():
     """return coucou for test"""
     return jsonify({'message': 'coucou'})
 
-@app.route('/db-test')
+@app.route('/api/db-test')
 def db_test():
     """Tester la connexion à la base de données"""
     try:
