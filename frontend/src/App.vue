@@ -19,7 +19,23 @@ const loadData = async (): Promise<void> => {
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : String(err)
   }
+}
 
+const testDb = async (): Promise<void> => {
+  try {
+    const res = await fetch('/api/db-test', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    console.log(res)
+
+    if (!res.ok) throw new Error('Erreur serveur')
+
+    data.value = await res.json()
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : String(err)
+  }
 }
 
 onMounted(() => {
@@ -29,9 +45,9 @@ onMounted(() => {
 
 <template>
   <h1>You did it!</h1>
-
-  <button @click="loadData">
-    Charger les données du back
+  
+  <button @click="testDb">
+    test db
   </button>
 
   <div v-if="data">
