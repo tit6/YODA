@@ -23,9 +23,10 @@ def get_db_connection():
     """Créer une connexion à la base de données"""
     return pymysql.connect(**db_config)
 
-@app.route('/')
+@app.route('/coucou')
 def hello():
-    return 'Hello, World!'
+    """return coucou for test"""
+    return justify({'message': 'coucou'})
 
 @app.route('/db-test')
 def db_test():
