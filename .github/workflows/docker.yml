@@ -1,0 +1,79 @@
+name: Docker
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-containers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          MYSQL_ROOT_PASSWORD=root
+          MYSQL_DATABASE=yoda
+          DATABASE_HOST=database
+          DATABASE_PORT=3306
+          DATABASE_NAME=yoda
+          DATABASE_USER=root
+          DATABASE_PASSWORD=root
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=minioadmin
+          MINIO_ENDPOINT=minio:9000
+          MINIO_ACCESS_KEY=minioadmin
+          MINIO_SECRET_KEY=minioadmin
+          EOF
+
+      - name: Build Docker images
+        run: docker compose build
+
+      - name: Start containers
+        run: docker compose up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+
+      - name: Check database container
+        run: |
+          docker ps | grep yoda-database
+          docker logs yoda-database
+
+      - name: Check MinIO container
+        run: |
+          docker ps | grep yoda-minio
+          docker logs yoda-minio
+
+      - name: Check backend container
+        run: |
+          docker ps | grep yoda-backend
+          docker logs yoda-backend
+
+      - name: Check frontend container
+        run: |
+          docker ps | grep yoda-frontend
+          docker logs yoda-frontend
+
+      - name: Test backend health
+        run: |
+          curl -f http://localhost:5000/ || exit 1
+
+      - name: Test backend database connection
+        run: |
+          curl -f http://localhost:5000/db-test || exit 1
+
+      - name: Test frontend
+        run: |
+          curl -f http://localhost:5173/ || exit 1
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
