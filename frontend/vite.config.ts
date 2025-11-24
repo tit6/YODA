@@ -22,7 +22,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://172.18.0.1:5000',
+        target: 'http://backend:5000',
         changeOrigin: true,
         secure: false,
       },
