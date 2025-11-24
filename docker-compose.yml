@@ -33,6 +33,9 @@ services:
       - minio
     env_file:
       - .env
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
 
   # Frontend Vite/JS qui consomme l'API backend
   frontend:
@@ -44,6 +47,9 @@ services:
       - backend
     env_file:
       - .env
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
 # Volumes nommés pour persister les données MySQL et MinIO
 volumes:

@@ -17,6 +17,9 @@ export default defineConfig({
   //for link back and fronted
   //Front  →  Vite proxy  →  http://localhost:5000/  →  Flask (gpt demonstration)
   server: {
+    watch: {
+      usePolling: true,
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
