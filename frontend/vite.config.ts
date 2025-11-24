@@ -14,8 +14,8 @@ export default defineConfig({
     },
   },
 
-  //for link back and fronted
-  //Front  →  Vite proxy  →  http://172.18.0.1:5000/  →  Flask (gpt demonstration)
+  //to link backend wife the fronted
+  //Front  →  Vite proxy  →  http://backend:5000/  →  Flask (gpt demonstration)
   server: {
     watch: {
       usePolling: true,
