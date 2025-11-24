@@ -6,7 +6,7 @@ const error = ref<string | null>(null)
 
 const loadData = async (): Promise<void> => {
   try {
-    const res = await fetch('/coucou', {
+    const res = await fetch('/api/coucou', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     })
@@ -19,6 +19,7 @@ const loadData = async (): Promise<void> => {
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : String(err)
   }
+
 }
 
 onMounted(() => {
@@ -28,7 +29,7 @@ onMounted(() => {
 
 <template>
   <h1>You did it!</h1>
-  
+
   <button @click="loadData">
     Charger les données du back
   </button>
