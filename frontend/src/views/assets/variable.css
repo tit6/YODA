@@ -1,0 +1,8 @@
+:root {
+    --primary-color: #000;
+    --primary-hover-color: #333;
+    --secondary-color: #fff;
+
+    /* warning colors */
+    --red-warning: #FF5465;
+}
