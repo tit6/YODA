@@ -26,7 +26,7 @@ def get_db_connection():
 @app.route('/coucou')
 def hello():
     """return coucou for test"""
-    return justify({'message': 'coucou'})
+    return jsonify({'message': 'coucou'})
 
 @app.route('/db-test')
 def db_test():

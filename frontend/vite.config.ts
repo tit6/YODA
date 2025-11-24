@@ -15,14 +15,15 @@ export default defineConfig({
   },
 
   //for link back and fronted
-  //Front  →  Vite proxy  →  http://localhost:5000/api/users  →  Flask (gpt demonstration)
+  //Front  →  Vite proxy  →  http://localhost:5000/  →  Flask (gpt demonstration)
   server: {
     proxy: {
-      '/': {
+      '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
-      }
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     }
   }
 })
