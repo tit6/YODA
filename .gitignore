@@ -20,3 +20,6 @@ Thumbs.db
 #python
 .venv
 venv
+
+# __pycache__
+__pycache__/
