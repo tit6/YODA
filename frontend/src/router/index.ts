@@ -9,6 +9,7 @@ import TestDb from '../views/testdb.vue'
 import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
 import AdminDashboardView from '../views/dashboard/AdminDashboardView.vue'
 import DocumentsView from '../views/dashboard/DocumentsView.vue'
+import AccountView from '../views/dashboard/account/AccountView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -84,7 +85,7 @@ const router = createRouter({
               {
                   path: 'account',
                   name: 'dashboard-account',
-                  component: DocumentsView,
+                  component: AccountView,
                   meta: { title: 'Mon compte' }
               }
           ]
