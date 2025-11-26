@@ -1,8 +1,10 @@
 from bcrypt import hashpw, gensalt
 
+import jwt
 from db import execute_write
 from flask import Blueprint, jsonify, request
 register_bp = Blueprint("register", __name__)
+
 
 
 @register_bp.route("/register", methods=["POST"])
@@ -29,8 +31,6 @@ def register():
         rowcount, user_id = execute_write(
             "INSERT INTO users (nom, email, mdp) VALUES (%s, %s, %s)",
             (name, email, hash_str))
-        #a2fa it's true by default for testing    
-
     
         return jsonify({"message": "register route", "user_id": user_id}), 200
     except Exception as exc:

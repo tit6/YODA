@@ -1,5 +1,6 @@
 from flask import Flask
 from dotenv import load_dotenv
+from middleware import auth_middleware
 
 from routes import register_blueprints
 
@@ -9,6 +10,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+    app.before_request(auth_middleware)
     register_blueprints(app)
     return app
 

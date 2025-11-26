@@ -1,4 +1,5 @@
 import os
+import secrets
 
 import pymysql
 from dotenv import load_dotenv
@@ -16,3 +17,6 @@ DATABASE_CONFIG = {
     "charset": "utf8mb4",
     "cursorclass": DictCursor,
 }
+
+#SECRET_KEY = secrets.token_hex(4096)
+SECRET_KEY = "coucou"
