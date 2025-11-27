@@ -1,52 +1,21 @@
-from flask import Flask, jsonify
-import pymysql
-import os
+from flask import Flask
 from dotenv import load_dotenv
+from middleware import auth_middleware
 
-# Charger les variables d'environnement depuis .env
+from routes import register_blueprints
+
+# Load environment variables for the app and the blueprints.
 load_dotenv()
 
-app = Flask(__name__)
 
-# Configuration MySQL depuis les variables d'environnement
-db_config = {
-    'host': os.getenv('DATABASE_HOST'),
-    'port': int(os.getenv('DATABASE_PORT') or 3306),
-    'user': os.getenv('DATABASE_USER'),
-    'password': os.getenv('DATABASE_PASSWORD'),
-    'database': os.getenv('DATABASE_NAME'),
-    'charset': 'utf8mb4',
-    'cursorclass': pymysql.cursors.DictCursor
-}
+def create_app():
+    app = Flask(__name__)
+    app.before_request(auth_middleware)
+    register_blueprints(app)
+    return app
 
-def get_db_connection():
-    """Créer une connexion à la base de données"""
-    return pymysql.connect(**db_config)
 
-@app.route('/api/coucou')
-def hello():
-    """return coucou for test"""
-    return jsonify({'message': 'coucou'})
+app = create_app()
 
-@app.route('/api/db-test')
-def db_test():
-    """Tester la connexion à la base de données"""
-    try:
-        connection = get_db_connection()
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT VERSION()")
-            version = cursor.fetchone()
-        connection.close()
-        return jsonify({
-            'status': 'success',
-            'message': 'Connexion MySQL réussie',
-            'mysql_version': version
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
