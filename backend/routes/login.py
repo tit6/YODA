@@ -23,13 +23,13 @@ def login():
     try :
         mdp = fetch_one("SELECT id, mdp FROM users WHERE email = %s", (email,))
         if mdp is None:
-            return jsonify({"status": "error", "message": "the uemail is not find"}), 404
+            return jsonify({"status": "error"}), 200
         
 
         motdepasse_bytes = password.encode("utf-8")
         hash_bytes = mdp['mdp'].encode("utf-8")
         if not checkpw(motdepasse_bytes, hash_bytes):
-            return jsonify({"status": "error", "message": "Invalid password"}), 401
+            return jsonify({"status": "error"}), 200
         
         else :
 
@@ -49,5 +49,4 @@ def login():
 
         
     except Exception as exc :
-        return jsonify({"status": "error", "message": str(exc)}), 500
-
+        return jsonify({"status": "error"}), 500

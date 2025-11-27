@@ -15,10 +15,9 @@ def db_test():
         return jsonify(
             {
                 "status": "success",
-                "message": "Connexion MySQL reussie",
                 "mysql_version": version,
                 "tables": tables_list,
             }
         )
     except Exception as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 500
+        return jsonify({"status": "error"}), 500
