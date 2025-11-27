@@ -78,22 +78,6 @@ const isActive = (routePath: string) => {
           <span class="nav-label" v-if="!isSidebarCollapsed">Partages</span>
         </router-link>
 
-        <!-- AUDIT -->
-        <router-link
-          to="/dashboard/audit"
-          class="nav-item"
-          :class="{ active: isActive('/dashboard/audit') }"
-        >
-          <svg class="nav-icon" viewBox="0 0 24 24">
-            <path
-              d="M3 3H21V5H3V3ZM3 7H21V9H3V7ZM3 11H21V13H3V11ZM3 15H21V17H3V15ZM3
-                 19H21V21H3V19Z"
-              fill="currentColor"
-            />
-          </svg>
-          <span class="nav-label" v-if="!isSidebarCollapsed">Journal d'accès</span>
-        </router-link>
-
         <!-- SÉCURITÉ -->
         <router-link
           to="/dashboard/account"

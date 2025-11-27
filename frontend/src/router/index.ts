@@ -9,6 +9,7 @@ import TestDb from '../views/testdb.vue'
 import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
 import AdminDashboardView from '../views/dashboard/AdminDashboardView.vue'
 import DocumentsView from '../views/dashboard/DocumentsView.vue'
+import SharedDocumentsView from '../views/dashboard/SharedDocumentsView.vue'
 import AccountView from '../views/dashboard/account/AccountView.vue'
 
 const router = createRouter({
@@ -52,10 +53,12 @@ const router = createRouter({
       },
       {
           path: '/dashboard',
+          name: 'dashboard',
           component: DashboardLayout,
           children: [
               {
                   path: '',
+                  name: 'dashboard-document',
                   redirect: '/dashboard/documents'
               },
               {
@@ -73,14 +76,8 @@ const router = createRouter({
               {
                   path: 'shared',
                   name: 'dashboard-shared',
-                  component: DocumentsView,
+                  component: SharedDocumentsView,
                   meta: { title: 'Partages' }
-              },
-              {
-                  path: 'audit',
-                  name: 'dashboard-audit',
-                  component: DocumentsView,
-                  meta: { title: 'Journal d\'accès' }
               },
               {
                   path: 'account',

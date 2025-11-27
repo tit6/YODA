@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const isLogin = ref(true)
 const email = ref('')
 const password = ref('')
@@ -48,11 +50,15 @@ const isPasswordValid = computed(() => {
          /[^a-zA-Z0-9]/.test(pwd)
 })
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   submitted.value = true
 
   if (isLogin.value) {
-    console.log('Login:', { email: email.value, password: password.value })
+    await authStore.login({ email: email.value, password: password.value })
+
+    if (!authStore.error && authStore.isAuthenticated) {
+      await router.push({name: 'dashboard-document'})
+    }
   } else {
     if (password.value !== confirmPassword.value) {
       const confirmPasswordError = document.getElementById('confirm-password')
@@ -68,10 +74,9 @@ const handleSubmit = () => {
 
     console.log('Register:', { name: name.value, firstName: firstName.value, email: email.value, password: password.value })
 
-    // Redirection vers la page de validation d'email avec l'email en state (caché de l'URL)
-    router.push({
+    await router.push({
       name: 'email-validation',
-      state: { email: email.value }
+      state: {email: email.value}
     })
   }
 }
@@ -141,7 +146,7 @@ const handleSubmit = () => {
                 placeholder="********"
                 required
               />
-              <p style="color: red; font-size: 15px" v-if="submitted && isLogin && password !== 'louis'">Le mots de passe ou nom d'utilisateur est invalide.</p>
+              <p style="color: red; font-size: 15px" v-if="submitted && isLogin && authStore.error">{{ authStore.error }}</p>
 
               <!-- Indicateur de force du mot de passe (seulement en mode enregistrement) -->
               <div v-if="!isLogin" class="password-strength">
