@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS `logs`;
 CREATE TABLE `logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `id_users` int NOT NULL,
+  `statut` int NOT NULL,
   `action` varchar(100) NOT NULL,
   `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

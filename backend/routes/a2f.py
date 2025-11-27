@@ -1,54 +1,63 @@
-from flask import Blueprint, jsonify, request, g
-
+from flask import Blueprint, request, g
+from jwt_ag import encode_jwt
 from db import fetch_one, execute_write
-import pyotp
-from bcrypt import checkpw
-import qrcode
-import qrcode.image.pure
 import base64
 import io
+import pyotp
+import qrcode
+import qrcode.image.pure
+from bcrypt import checkpw
+from api_retour import api_response
 
 active_a2f = Blueprint("a2f", __name__)
 check_a2f = Blueprint("a2fc", __name__)
 diable_a2f = Blueprint("a2fd", __name__)
+login_a2f = Blueprint("login_a2f", __name__)
+
+
+def fetch_user_fields(user_id: int, fields: tuple[str, ...]):
+    """Small helper to avoid repeating SELECTs on users."""
+    column_list = ", ".join(fields)
+    return fetch_one(f"SELECT {column_list} FROM users WHERE id = %s", (user_id,))
+
+
+def is_password_valid(password: str, hashed_password: str) -> bool:
+    return checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+
 
 @diable_a2f.route("/disable_a2f", methods=["POST"])
 def a2fd():
     id_user = g.user["id"]
     password = request.json.get("password")
     if password is None:
-        return jsonify({"status": "error", "message": "Missing password"}), 400
+        return api_response({"status": "error", "message": "Missing password"}, 400, id_user, "2FA disable failed: missing password")
     
-    mdp = fetch_one("SELECT mdp FROM users WHERE id = %s", (id_user,))
+    mdp = fetch_user_fields(id_user, ("mdp",))
     if mdp is None:
-        return jsonify({"status": "error", "message": "the id is not find"}), 404
-    
-    motdepasse_bytes = password.encode("utf-8")
-    hash_bytes = mdp["mdp"].encode("utf-8")
-    if not checkpw(motdepasse_bytes, hash_bytes):
-        return jsonify({"status": "error", "message": "Invalid password"}), 401
+        return api_response({"status": "error", "message": "the id is not find"}, 404, id_user, "2FA disable failed: user not found")
+    if not is_password_valid(password, mdp["mdp"]):
+        return api_response({"status": "error", "message": "Invalid password"}, 401, id_user, "2FA disable failed: bad password")
 
     if not update_otp_status("Null", 0, id_user):
-        return jsonify({"status": "error", "message": "Failed to disable 2FA"}), 500
-    
-    return jsonify({"status": "success", "message": "2FA disabled successfully"}), 200
+        return api_response({"status": "error", "message": "Failed to disable 2FA"}, 500, id_user, "2FA disable failed: DB error")
+
+    return api_response({"status": "success", "message": "2FA disabled successfully"}, 200, id_user, "Disabled 2FA")
     
 
 
 @check_a2f.route("/check_a2f", methods=["POST"])
 def a2fc():
+    id_user = g.user["id"]
 
     code = request.json.get("otp")
     if code is None:
-        return jsonify({"status": "error", "message": "Missing OTP code"}), 400
+        return api_response({"status": "error", "message": "Missing OTP code"}, 400, id_user, "2FA check failed: missing OTP")
 
-    id_user = g.user["id"]
-
-    mdp = fetch_one("SELECT email, mdp, secret_a2f FROM users WHERE id = %s", (id_user,))
+    mdp = fetch_user_fields(id_user, ("email", "mdp", "secret_a2f"))
     if mdp is None:
-        return jsonify({"status": "error", "message": "the id is not find"}), 404
+        return api_response({"status": "error", "message": "the id is not find"}, 404, id_user, "2FA check failed: user not found")
     if mdp["secret_a2f"] == "Null":
-        return jsonify({"status": "error", "message": "2FA not activated"}), 400
+        return api_response({"status": "error", "message": "2FA not activated"}, 400, id_user, "2FA check failed: not activated")
     
     secret = mdp["secret_a2f"]
 
@@ -57,35 +66,61 @@ def a2fc():
     # Verify the code
     if totp.verify(code):
         update_otp_status(secret, 2, id_user)
-        return jsonify({'success': True}), 200
+        return api_response({'success': True}, 200, id_user, "Successful 2FA verification")
     else:
         update_otp_status(secret, 0, id_user)
-        return jsonify({'success': False}), 401
+        return api_response({'success': False}, 401, id_user, "2FA check failed: invalid OTP")
+
+
+@login_a2f.route("/a2f_login", methods=["POST"])
+def validate_a2f():
+    """Validate OTP without changing activation status."""
+    id_user = g.user["id"]
+    a2f_statue = g.user["a2f"]
+    if a2f_statue != 1:
+        return api_response({"status": "error", "message": "2FA validation not required"}, 400, id_user, "2FA validate failed: not required")
+
+    code = request.json.get("otp")
+    if code is None:
+        return api_response({"status": "error", "message": "Missing OTP code"}, 400, id_user, "2FA validate failed: missing OTP")
+
+    user = fetch_user_fields(id_user, ("secret_a2f", "statue_a2f"))
+    if user is None:
+        return api_response({"status": "error", "message": "the id is not find"}, 404, id_user, "2FA validate failed: user not found")
+    if user["secret_a2f"] == "Null" or user.get("statue_a2f") != 2:
+        return api_response({"status": "error", "message": "2FA not activated"}, 400, id_user, "2FA validate failed: not activated")
+
+    totp = pyotp.TOTP(user["secret_a2f"])
+    if totp.verify(code):
+            token = encode_jwt({"user_id": id_user, "a2f" : 0}, expires_in=3600)
+            message = "Login successful with 2FA"
+            
+            return api_response({"status": "success", "token": token}, 200, id_user, message)
+
+    return api_response({'success': False}, 401, id_user, "2FA validate failed: invalid OTP")
 
 
 
 @active_a2f.route("/active_a2f", methods=["POST"])
 def a2f():
     id_user = g.user["id"]
-
-    if check_a2f_status(id_user) == 2:
-        return jsonify({"status": "error", "message": "2FA already activated"}), 400
-    elif check_a2f_status(id_user) == 1:
-        return jsonify({"status": "error", "message": "2FA is medium, please check your otp or desactive"}), 400
+    current_status = check_a2f_status(id_user)
+    if current_status == 2:
+        return api_response({"status": "error", "message": "2FA already activated"}, 400, id_user, "2FA activation blocked: already active")
+    elif current_status == 1:
+        return api_response({"status": "error", "message": "2FA is medium, please check your otp or desactive"}, 400, id_user, "2FA activation blocked: pending/medium state")
 
     password = request.json.get("password")
 
     if password is None:
-        return jsonify({"status": "error", "message": "Missing password"}), 400
+        return api_response({"status": "error", "message": "Missing password"}, 400, id_user, "2FA activation failed: missing password")
 
-    mdp = fetch_one("SELECT email, mdp FROM users WHERE id = %s", (id_user,))
+    mdp = fetch_user_fields(id_user, ("email", "mdp"))
     if mdp is None:
-        return jsonify({"status": "error", "message": "the id is not find"}), 404
+        return api_response({"status": "error", "message": "the id is not find"}, 404, id_user, "2FA activation failed: user not found")
 
-    motdepasse_bytes = password.encode("utf-8")
-    hash_bytes = mdp["mdp"].encode("utf-8")
-    if not checkpw(motdepasse_bytes, hash_bytes):
-        return jsonify({"status": "error", "message": "Invalid password"}), 401
+    if not is_password_valid(password, mdp["mdp"]):
+        return api_response({"status": "error", "message": "Invalid password"}, 401, id_user, "2FA activation failed: bad password")
 
     secret = pyotp.random_base32()
     totp = pyotp.TOTP(secret)
@@ -94,15 +129,15 @@ def a2f():
     qr_code_base64 = generate_qr_code(provisioning_url)
     
     if not update_otp_status(secret, 1, id_user):
-        return jsonify({"status": "error", "message": "Failed to store secret"}), 500
+        return api_response({"status": "error", "message": "Failed to store secret"}, 500, id_user, "2FA activation failed: DB error")
 
-    return jsonify({
+    return api_response({
         "status": "success",
         "user": id_user,
         "url": provisioning_url,
         "secret": secret,
         "qrcode": f"data:image/png;base64,{qr_code_base64}",
-    }), 200
+    }, 200, id_user, "Activated 2FA")
 
 
 def generate_qr_code(provisioning_url: str) -> str:

@@ -1,13 +1,12 @@
-from config import SECRET_KEY
 from flask import request, jsonify, g
 import jwt
 from jwt import InvalidTokenError, ExpiredSignatureError
-
+from config import SECRET_KEY
 PUBLIC_PATHS = [
     "/api/login",
     "/api/register",
+    "/api/validate_a2f",
 ]
-
 def is_public(path: str) -> bool:
     return any(path.startswith(p) for p in PUBLIC_PATHS)
 
@@ -30,5 +29,8 @@ def auth_middleware():
         return jsonify({"error": "Token expired"}), 401
     except InvalidTokenError:
         return jsonify({"error": "Invalid token"}), 401
+
+    if payload.get("a2f") == 1 and path != "/api/a2f_login":
+        return jsonify({"error": "Invalid token payload"}), 402
 
     g.user = payload  # pour utilisation dans les routes

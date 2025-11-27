@@ -1,6 +1,5 @@
 from bcrypt import hashpw, gensalt
 
-import jwt
 from db import execute_write
 from flask import Blueprint, jsonify, request
 register_bp = Blueprint("register", __name__)

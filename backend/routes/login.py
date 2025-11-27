@@ -6,6 +6,9 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from bcrypt import checkpw
 from config import SECRET_KEY
+from jwt_ag import encode_jwt
+from routes.a2f import check_a2f_status
+from api_retour import api_response
 login_bp = Blueprint("login", __name__)
 
 
@@ -29,10 +32,20 @@ def login():
             return jsonify({"status": "error", "message": "Invalid password"}), 401
         
         else :
-            token = jwt.encode({'id': mdp['id'], 'exp': datetime.now(timezone.utc) + timedelta(hours=1)},
-                           SECRET_KEY, algorithm="HS256")   
 
-            return jsonify({"status": "success", "message": "Login successful", "token": token}), 200
+            if check_a2f_status(mdp["id"]):
+                 token = encode_jwt({"user_id": mdp["id"], "a2f" : 1}, expires_in=3600)
+                 message = "Login successful with 2FA wait a2f verification"
+            else :
+                token = encode_jwt({"user_id": mdp["id"], "a2f" : 0}, expires_in=3600)
+                message = "Login successful without 2FA"
+            
+            return api_response({"status": "success", "token": token}, 200, mdp["id"], message)
+            
+
+
+                
+            
 
         
     except Exception as exc :

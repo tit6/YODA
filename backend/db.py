@@ -33,3 +33,13 @@ def fetch_all(query, params=None):
         with connection.cursor() as cursor:
             cursor.execute(query, params or ())
             return cursor.fetchall()
+
+def update_logs(user_id: int = 0, statut: int = 0, action: str = "") -> None:
+    """Insert Users_logs in logs table."""
+    query = "INSERT INTO logs (id_users, statut, action) VALUES (%s, %s, %s)"
+    params = (user_id, statut, action)
+
+    return execute_write(query, params)
+
+
+    
