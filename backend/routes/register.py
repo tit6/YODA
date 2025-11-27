@@ -15,7 +15,7 @@ def register():
 
     print(f"Registering user: {name}, {email}, {password}")
     if not name or not email or not password:
-        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+        return jsonify({"status": "error"}), 400
 
     #bcrypt wait the bytes
     motdepasse_bytes = password.encode("utf-8")
@@ -31,7 +31,7 @@ def register():
             "INSERT INTO users (nom, email, mdp) VALUES (%s, %s, %s)",
             (name, email, hash_str))
     
-        return jsonify({"message": "register route", "user_id": user_id}), 200
+        return jsonify({"status": "success", "user_id": user_id}), 200
     except Exception as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 500
+        return jsonify({"status": "error"}), 500
     

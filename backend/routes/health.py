@@ -5,4 +5,4 @@ health_bp = Blueprint("health", __name__)
 
 @health_bp.route("/coucou")
 def hello():
-    return jsonify({"message": "coucou"})
+    return jsonify({"status": "ok"})
