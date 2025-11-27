@@ -83,13 +83,48 @@ jobs:
           docker ps | grep yoda-frontend
           docker logs yoda-frontend
 
-      - name: Test backend health
+      - name: Test backend API
         run: |
-          curl -f http://localhost:5000/api/db-test || exit 1
+          curl -f http://localhost:5000/api/coucou || exit 1
 
-      - name: Test backend database connection
+      - name: Test database connection
         run: |
-          curl -f http://localhost:5000/api/db-test || exit 1
+          response=$(curl -s http://localhost:5000/api/db-test)
+          echo "$response"
+          echo "$response" | grep -q "success" || exit 1
+
+      - name: Test MinIO file listing
+        run: |
+          response=$(curl -s http://localhost:5000/api/files)
+          echo "$response"
+          echo "$response" | grep -q "success" || exit 1
+
+      - name: Test file upload
+        run: |
+          echo "Test content for CI/CD" > test-upload.txt
+          response=$(curl -s -F "file=@test-upload.txt" http://localhost:5000/api/upload)
+          echo "$response"
+          echo "$response" | grep -q "success" || exit 1
+          file_name=$(echo "$response" | grep -o '"object_name":"[^"]*"' | cut -d'"' -f4)
+          echo "Uploaded file: $file_name"
+          echo "FILE_NAME=$file_name" >> $GITHUB_ENV
+
+      - name: Test file download
+        run: |
+          if [ ! -z "$FILE_NAME" ]; then
+            response=$(curl -s http://localhost:5000/api/download/$FILE_NAME)
+            echo "$response"
+            echo "$response" | grep -q "download_url" || exit 1
+          fi
+
+      - name: Test file deletion
+        run: |
+          if [ ! -z "$FILE_NAME" ]; then
+            response=$(curl -s -X DELETE http://localhost:5000/api/delete/$FILE_NAME)
+            echo "$response"
+            echo "$response" | grep -q "success" || exit 1
+          fi
+
       - name: Test frontend
         run: |
           curl -f http://localhost:5173/ || exit 1
