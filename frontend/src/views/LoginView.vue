@@ -101,7 +101,7 @@ const handleSubmit = () => {
               <p style="color: red; font-size: 15px;" v-if="submitted && password !== confirmPassword">Les mots de passe ne correspondent pas.</p>
             </div>
 
-            <button type="submit" class="submit-btn" @click="">
+            <button type="submit" class="submit-btn">
               {{ isLogin ? 'Se connecter' : "S'enregistrer" }}
             </button>
           </form>
