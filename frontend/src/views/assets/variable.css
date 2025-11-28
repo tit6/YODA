@@ -1,8 +1,13 @@
 :root {
     --primary-color: #000;
     --primary-hover-color: #333;
+    --primary-active-color: #666;
     --secondary-color: #fff;
+
+    /* border */
+    --border-input-color: #e5e5e5;
 
     /* warning colors */
     --red-warning: #FF5465;
+    --blue-warning: #e3f2fd;
 }
