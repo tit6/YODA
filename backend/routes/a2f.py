@@ -107,9 +107,7 @@ def a2f():
     current_status = check_a2f_status(id_user)
     if current_status == 2:
         return api_response({"status": "error"}, 400, id_user, "2FA activation blocked: already active")
-    elif current_status == 1:
-        return api_response({"status": "error"}, 400, id_user, "2FA activation blocked: pending/medium state")
-
+    
     password = request.json.get("password")
 
     if password is None:
