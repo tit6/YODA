@@ -1,9 +1,10 @@
 from .database import database_bp
 from .health import health_bp
-from .login import login_bp, name_user, statue_session
+from .login import login_bp
 from .register import register_bp
 from .a2f  import active_a2f, check_a2f, diable_a2f, login_a2f, statue_a2f_route
 from .docs import docs_bp
+from .user import name_user, statue_session, change_password
 
 
 def register_blueprints(app):
@@ -19,4 +20,5 @@ def register_blueprints(app):
     app.register_blueprint(name_user, url_prefix=api_prefix)
     app.register_blueprint(statue_a2f_route, url_prefix=api_prefix)
     app.register_blueprint(statue_session, url_prefix=api_prefix)
+    app.register_blueprint(change_password, url_prefix=api_prefix)
     app.register_blueprint(docs_bp)

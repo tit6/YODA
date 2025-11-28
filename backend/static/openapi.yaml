@@ -18,6 +18,8 @@ tags:
     description: Connexion et 2FA
   - name: users
     description: Profil utilisateur
+  - name: session
+    description: Statut de session et changement de mot de passe
 paths:
   /api/login:
     post:
@@ -93,6 +95,19 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/UserNameResponse'
                   - $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Erreur serveur
+  /api/statue_session:
+    get:
+      tags: [session]
+      summary: Vérifie que la session actuelle est valide
+      responses:
+        "200":
+          description: Session valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
         "500":
           description: Erreur serveur
   /api/active_a2f:
@@ -273,6 +288,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/change_password:
+    post:
+      tags: [session]
+      summary: Change le mot de passe de l'utilisateur connecté
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+              required: [old_password, new_password]
+            examples:
+              change:
+                value:
+                  old_password: ancienSecret
+                  new_password: nouveauMotDePasse
+      responses:
+        "200":
+          description: Mot de passe changé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessOnly'
+        "400":
+          description: Champs manquants ou nouveau mot de passe invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Ancien mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Erreur base de données
   /api/statue_a2f:
     get:
       tags: [auth]
