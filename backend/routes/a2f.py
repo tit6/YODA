@@ -93,12 +93,12 @@ def validate_a2f():
 
     totp = pyotp.TOTP(user["secret_a2f"])
     if totp.verify(code):
-            token = encode_jwt({"user_id": id_user, "a2f" : 0}, expires_in=3600)
+            token = encode_jwt({"id": id_user, "a2f" : 0}, expires_in=3600)
             message = "Login successful with 2FA"
             
             return api_response({"status": "success", "token": token}, 200, id_user, message)
 
-    return api_response({'success': False}, 401, id_user, "2FA validate failed: invalid OTP")
+    return api_response({'success': "error"}, 401, id_user, "2FA validate failed: invalid OTP")
 
 
 
