@@ -11,11 +11,15 @@ type SessionJson = {
 }
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    isAuthenticated: false,
-    requires_a2f: BigInt(0),
-    error: '',
-  }),
+  state: () => {
+    const token = localStorage.getItem('auth_token') || ''
+    return {
+      isAuthenticated: !!token,
+      requires_a2f: BigInt(0),
+      error: '',
+      token,
+    }
+  },
   actions: {
       async login(credentials: Credentials) {
           try {
@@ -48,18 +52,25 @@ export const useAuthStore = defineStore('auth', {
             // Si l'API retourne un token, c'est que la connexion est réussie
             if (data.token || data.status === 'success') {
                 this.isAuthenticated = true
+                if (data.token) {
+                    this.token = data.token
+                    localStorage.setItem('auth_token', data.token)
+                }
             } else if (data.authenticated !== undefined) {
                 this.error = 'Mots de passe ou adresse email incorrects.'
                 this.isAuthenticated = data.authenticated
             }
 
-            if (data.requires_a2f) {
-                this.requires_a2f = data.requires_a2f
-            }
           } catch (err) {
               this.error = 'Erreur de connexion'
               this.isAuthenticated = false
           }
+      },
+      
+      async logout() {
+          this.isAuthenticated = false
+          this.token = ''
+          localStorage.removeItem('auth_token')
       }
   }
 })

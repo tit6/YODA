@@ -57,7 +57,7 @@ const handleSubmit = async () => {
     await authStore.login({ email: email.value, password: password.value })
 
     if (!authStore.error && authStore.isAuthenticated) {
-      await router.push({name: 'dashboard-document'})
+      await router.push({path: '/dashboard/documents'})
     }
   } else {
     if (password.value !== confirmPassword.value) {
@@ -71,8 +71,6 @@ const handleSubmit = async () => {
     if (!isPasswordValid.value) {
       return
     }
-
-    console.log('Register:', { name: name.value, firstName: firstName.value, email: email.value, password: password.value })
 
     await router.push({
       name: 'email-validation',

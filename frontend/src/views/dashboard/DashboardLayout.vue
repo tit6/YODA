@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -16,8 +17,9 @@ const toggleSidebar = () => {
 }
 
 const logout = () => {
-  // TODO: Clear auth store, push the flask endpoint to clear the session and redirect
-  router.push('/login')
+  const authStore = useAuthStore()
+  authStore.logout()
+  router.push('login')
 }
 
 const isActive = (routePath: string) => {
