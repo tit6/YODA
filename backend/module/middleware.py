@@ -9,6 +9,10 @@ PUBLIC_PATHS = [
     "/api/docs",
     "/static",
 ]
+
+TEMP_PATHS = [
+    "/api/check_a2f",
+    "/api/a2f_login",
 def is_public(path: str) -> bool:
     return any(path.startswith(p) for p in PUBLIC_PATHS)
 
@@ -32,9 +36,7 @@ def auth_middleware():
     except InvalidTokenError:
         return jsonify({"error": "Invalid token"}), 401
 
-    if payload.get("a2f") == 1 and path == "/api/a2f_login" or path == "/api/check_a2f":
-        continue
-    else:
+    if payload.get("a2f") == 1 and path not in TEMP_PATHS:
         return jsonify({"error": "Invalid token payload"}), 402
 
     g.user = payload  # pour utilisation dans les routes
