@@ -4,6 +4,7 @@ import os
 # import pymysql
 from dotenv import load_dotenv
 from pymysql.cursors import DictCursor
+from minio import Minio
 
 # Make .env variables available everywhere.
 load_dotenv()
@@ -19,8 +20,6 @@ DATABASE_CONFIG = {
 }
 
 # Configuration MinIO
-from minio import Minio
-
 minio_client = Minio(
     os.getenv('MINIO_ENDPOINT') or 'localhost:9000',
     access_key=os.getenv('MINIO_ACCESS_KEY') or '',
