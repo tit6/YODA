@@ -82,13 +82,13 @@ def validate_a2f():
 
     code = request.json.get("otp")
     if code is None:
-        return api_response({"status": "error"}, 400, id_user, "2FA validate failed: missing OTP")
+        return api_response({"status": "error"}, 401, id_user, "2FA validate failed: missing OTP")
 
     user = fetch_user_fields(id_user, ("secret_a2f", "statue_a2f"))
     if user is None:
-        return api_response({"status": "error"}, 404, id_user, "2FA validate failed: user not found")
+        return api_response({"status": "error"}, 402, id_user, "2FA validate failed: user not found")
     if user["secret_a2f"] == "Null" or user.get("statue_a2f") != 2:
-        return api_response({"status": "error"}, 400, id_user, "2FA validate failed: not activated")
+        return api_response({"status": "error"}, 403, id_user, "2FA validate failed: not activated")
 
     totp = pyotp.TOTP(user["secret_a2f"])
     if totp.verify(code):

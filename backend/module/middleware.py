@@ -6,6 +6,8 @@ PUBLIC_PATHS = [
     "/api/login",
     "/api/register",
     "/api/validate_a2f",
+    "/api/docs",
+    "/static",
 ]
 def is_public(path: str) -> bool:
     return any(path.startswith(p) for p in PUBLIC_PATHS)
