@@ -172,11 +172,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
+                $ref: '#/components/schemas/StatusResponse'
         "400":
           description: Données manquantes ou 2FA non activée
           content:
@@ -188,11 +184,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: false
+                $ref: '#/components/schemas/StatusResponse'
   /api/a2f_login:
     post:
       tags: [auth]
@@ -281,6 +273,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/statue_a2f:
+    get:
+      tags: [auth]
+      summary: Retourne l'état actuel de la 2FA pour l'utilisateur connecté
+      responses:
+        "200":
+          description: Statut courant (0 = inactif, 1 = en attente, 2 = actif)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 2
+        "500":
+          description: Erreur serveur
   /api/db-test:
     get:
       tags: [diagnostics]
@@ -338,6 +347,12 @@ components:
         status:
           type: string
           example: error
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
     LoginRequest:
       type: object
       properties:
