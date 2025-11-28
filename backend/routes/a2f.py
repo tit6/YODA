@@ -13,6 +13,7 @@ active_a2f = Blueprint("a2f", __name__)
 check_a2f = Blueprint("a2fc", __name__)
 diable_a2f = Blueprint("a2fd", __name__)
 login_a2f = Blueprint("login_a2f", __name__)
+statue_a2f_route = Blueprint("statue_a2f_route", __name__)
 
 
 def fetch_user_fields(user_id: int, fields: tuple[str, ...]):
@@ -136,7 +137,12 @@ def a2f():
         "secret": secret,
         "qrcode": f"data:image/png;base64,{qr_code_base64}",
     }, 200, id_user, "Activated 2FA")
-
+    
+@statue_a2f_route.route("/statue_a2f", methods=["GET"])
+def test_a2f():
+    id_user = g.user["id"]
+    statue = check_a2f_status(id_user)
+    return api_response({"status": statue}, 200, id_user, "statue A2F check")
 
 def generate_qr_code(provisioning_url: str) -> str:
     qr = qrcode.QRCode(
