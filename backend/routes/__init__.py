@@ -1,9 +1,10 @@
 from .database import database_bp
 from .health import health_bp
-from .login import login_bp, name_user, statue_session
+from .login import login_bp
 from .register import register_bp
 from .a2f  import active_a2f, check_a2f, diable_a2f, login_a2f, statue_a2f_route
 from .docs import docs_bp
+from .user import name_user, statue_session
 
 
 def register_blueprints(app):
