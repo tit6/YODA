@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from bcrypt import checkpw
 
 from module.db import fetch_one
@@ -7,7 +7,7 @@ from module.api_retour import api_response
 from routes.a2f import check_a2f_status
 
 login_bp = Blueprint("login", __name__)
-
+name_user = Blueprint("name_user", __name__)
 
 @login_bp.route("/login", methods=["POST"])
 def login():
@@ -38,12 +38,18 @@ def login():
                 message = "Login successful without 2FA"
             
             return api_response({"status": "success", "token": token}, 200, mdp["id"], message)
-            
+                    
+    except Exception as exc :
+        return jsonify({"status": "error"}), 500
 
-
-                
-            
-
-        
+@name_user.route("/name_user", methods=["GET"])
+def name_users():
+    id = g.user["id"]
+    try :
+        name = fetch_one("SELECT nom, prenom FROM users WHERE id = %s", (id,))
+        if name is None:
+            return jsonify({"status": "error"}), 200
+        else :
+            return jsonify({"status": "success", "nom": name["nom"], "prenom": name["prenom"]}), 200
     except Exception as exc :
         return jsonify({"status": "error"}), 500
