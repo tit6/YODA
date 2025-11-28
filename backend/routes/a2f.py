@@ -1,13 +1,13 @@
 from flask import Blueprint, request, g
-from jwt_ag import encode_jwt
-from db import fetch_one, execute_write
+from module.jwt_ag import encode_jwt
+from module.db import fetch_one, execute_write
 import base64
 import io
 import pyotp
 import qrcode
 import qrcode.image.pure
 from bcrypt import checkpw
-from api_retour import api_response
+from module.api_retour import api_response
 
 active_a2f = Blueprint("a2f", __name__)
 check_a2f = Blueprint("a2fc", __name__)

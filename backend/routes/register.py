@@ -1,7 +1,8 @@
 from bcrypt import hashpw, gensalt
 
-from db import execute_write
+from module.db import execute_write
 from flask import Blueprint, jsonify, request
+
 register_bp = Blueprint("register", __name__)
 
 
@@ -10,6 +11,7 @@ register_bp = Blueprint("register", __name__)
 def register():
 
     name = request.json.get("name")
+    prenom = request.json.get("prenom")
     email = request.json.get("email")
     password = request.json.get("password")
 
@@ -28,8 +30,8 @@ def register():
 
     try:
         rowcount, user_id = execute_write(
-            "INSERT INTO users (nom, email, mdp) VALUES (%s, %s, %s)",
-            (name, email, hash_str))
+            "INSERT INTO users (nom, prenom, email, mdp) VALUES (%s, %s, %s, %s)",
+            (name, prenom, email, hash_str))
     
         return jsonify({"status": "success", "user_id": user_id}), 200
     except Exception as exc:

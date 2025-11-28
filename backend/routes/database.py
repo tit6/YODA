@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 
-from db import fetch_all, fetch_one
+from module.db import fetch_all, fetch_one
 
 database_bp = Blueprint("database", __name__)
 
