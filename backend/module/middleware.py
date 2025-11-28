@@ -13,6 +13,7 @@ PUBLIC_PATHS = [
 TEMP_PATHS = [
     "/api/check_a2f",
     "/api/a2f_login",
+]
 def is_public(path: str) -> bool:
     return any(path.startswith(p) for p in PUBLIC_PATHS)
 

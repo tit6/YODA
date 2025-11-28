@@ -30,7 +30,7 @@ def login():
         
         else :
 
-            if check_a2f_status(mdp["id"]):
+            if check_a2f_status(mdp["id"]) == 2:
                  token = encode_jwt({"id": mdp["id"], "a2f" : 1}, expires_in=3600)
                  message = "Login successful with 2FA wait a2f verification"
             else :
