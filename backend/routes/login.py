@@ -1,14 +1,11 @@
-
-
-from db import fetch_one
 from flask import Blueprint, jsonify, request
-import jwt
-from datetime import datetime, timezone, timedelta
 from bcrypt import checkpw
-from config import SECRET_KEY
-from jwt_ag import encode_jwt
+
+from module.db import fetch_one
+from module.jwt_ag import encode_jwt
+from module.api_retour import api_response
 from routes.a2f import check_a2f_status
-from api_retour import api_response
+
 login_bp = Blueprint("login", __name__)
 
 

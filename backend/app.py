@@ -1,6 +1,6 @@
 from flask import Flask
 from dotenv import load_dotenv
-from middleware import auth_middleware
+from module.middleware import auth_middleware
 
 from routes import register_blueprints
 

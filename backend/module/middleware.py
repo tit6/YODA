@@ -1,7 +1,8 @@
 from flask import request, jsonify, g
 import jwt
 from jwt import InvalidTokenError, ExpiredSignatureError
-from config import SECRET_KEY
+from .config import SECRET_KEY
+
 PUBLIC_PATHS = [
     "/api/login",
     "/api/register",
