@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "minio" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "minio" ]
 
 jobs:
   ruff-lint:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"   # ou la version que tu utilises
+          python-version: "3.13"
 
       - name: Install Ruff
         run: |
