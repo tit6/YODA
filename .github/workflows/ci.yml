@@ -68,7 +68,6 @@ jobs:
           curl -s -X POST -H "Content-Type: application/json" -d '{"name":"ci","email":"ci@yoda.fr","password":"admin"}' http://localhost:5000/api/register
 
       - name: Login and get JWT
-        id: login
         run: |
           response=$(curl -s -X POST -H "Content-Type: application/json" -d '{"email":"ci@yoda.fr","password":"admin"}' http://localhost:5000/api/login)
           echo "$response"
