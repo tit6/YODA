@@ -142,7 +142,7 @@ def a2f():
 def test_a2f():
     id_user = g.user["id"]
     statue = check_a2f_status(id_user)
-    return api_response({"status": statue}, 200, id_user, "statue A2F check")
+    return api_response({"status": statue}, 200, id_user, f"statue A2F check is : {statue}")
 
 def generate_qr_code(provisioning_url: str) -> str:
     qr = qrcode.QRCode(
