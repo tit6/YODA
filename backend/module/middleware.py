@@ -32,7 +32,9 @@ def auth_middleware():
     except InvalidTokenError:
         return jsonify({"error": "Invalid token"}), 401
 
-    if payload.get("a2f") == 1 and path != "/api/a2f_login":
+    if payload.get("a2f") == 1 and path == "/api/a2f_login" or path == "/api/check_a2f":
+        continue
+    else:
         return jsonify({"error": "Invalid token payload"}), 402
 
     g.user = payload  # pour utilisation dans les routes
