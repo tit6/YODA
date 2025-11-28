@@ -72,9 +72,9 @@ jobs:
         run: |
           response=$(curl -s -X POST -H "Content-Type: application/json" -d '{"email":"ci@yoda.fr","password":"admin"}' http://localhost:5000/api/login)
           echo "$response"
-          token=$(echo "$response" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-          echo "JWT_TOKEN=$token" >> $GITHUB_ENV
+          token=$(echo "$response" | grep -o '"token":"[^\"]*"' | cut -d'"' -f4)
           if [ -z "$token" ]; then exit 1; fi
+          echo "JWT_TOKEN=$token" >> $GITHUB_ENV
 
       - name: Test backend API (auth)
         run: |
