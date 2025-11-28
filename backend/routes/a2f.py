@@ -67,10 +67,10 @@ def a2fc():
     # Verify the code
     if totp.verify(code):
         update_otp_status(secret, 2, id_user)
-        return api_response({'success': True}, 200, id_user, "Successful 2FA verification")
+        return api_response({'status': True}, 200, id_user, "Successful 2FA verification")
     else:
         update_otp_status(secret, 0, id_user)
-        return api_response({'success': False}, 401, id_user, "2FA check failed: invalid OTP")
+        return api_response({'status': False}, 401, id_user, "2FA check failed: invalid OTP")
 
 
 @login_a2f.route("/a2f_login", methods=["POST"])
