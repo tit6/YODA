@@ -18,5 +18,17 @@ DATABASE_CONFIG = {
     "cursorclass": DictCursor,
 }
 
+# Configuration MinIO
+from minio import Minio
+
+minio_client = Minio(
+    os.getenv('MINIO_ENDPOINT') or 'localhost:9000',
+    access_key=os.getenv('MINIO_ACCESS_KEY') or '',
+    secret_key=os.getenv('MINIO_SECRET_KEY') or '',
+    secure=False
+)
+
+BUCKET_NAME = 'coffre-fort'
+
 #SECRET_KEY = secrets.token_hex(4096)
 SECRET_KEY = "coucou"
