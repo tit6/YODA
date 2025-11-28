@@ -56,8 +56,12 @@ const handleSubmit = async () => {
   if (isLogin.value) {
     await authStore.login({ email: email.value, password: password.value })
 
-    if (!authStore.error && authStore.isAuthenticated) {
-      await router.push({name: 'dashboard-document'})
+    if (!authStore.error) {
+      if (authStore.requires_a2f) {
+        await router.push({path: '/auth/verify-2fa'})
+      } else if (authStore.isAuthenticated) {
+        await router.push({path: '/dashboard/documents'})
+      }
     }
   } else {
     if (password.value !== confirmPassword.value) {
@@ -71,8 +75,6 @@ const handleSubmit = async () => {
     if (!isPasswordValid.value) {
       return
     }
-
-    console.log('Register:', { name: name.value, firstName: firstName.value, email: email.value, password: password.value })
 
     await router.push({
       name: 'email-validation',

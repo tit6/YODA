@@ -13,6 +13,7 @@ active_a2f = Blueprint("a2f", __name__)
 check_a2f = Blueprint("a2fc", __name__)
 diable_a2f = Blueprint("a2fd", __name__)
 login_a2f = Blueprint("login_a2f", __name__)
+statue_a2f_route = Blueprint("statue_a2f_route", __name__)
 
 
 def fetch_user_fields(user_id: int, fields: tuple[str, ...]):
@@ -66,10 +67,10 @@ def a2fc():
     # Verify the code
     if totp.verify(code):
         update_otp_status(secret, 2, id_user)
-        return api_response({'success': True}, 200, id_user, "Successful 2FA verification")
+        return api_response({'status': "success"}, 200, id_user, "Successful 2FA verification")
     else:
         update_otp_status(secret, 0, id_user)
-        return api_response({'success': False}, 401, id_user, "2FA check failed: invalid OTP")
+        return api_response({'status': "error"}, 401, id_user, "2FA check failed: invalid OTP")
 
 
 @login_a2f.route("/a2f_login", methods=["POST"])
@@ -82,22 +83,22 @@ def validate_a2f():
 
     code = request.json.get("otp")
     if code is None:
-        return api_response({"status": "error"}, 400, id_user, "2FA validate failed: missing OTP")
+        return api_response({"status": "error"}, 401, id_user, "2FA validate failed: missing OTP")
 
     user = fetch_user_fields(id_user, ("secret_a2f", "statue_a2f"))
     if user is None:
-        return api_response({"status": "error"}, 404, id_user, "2FA validate failed: user not found")
+        return api_response({"status": "error"}, 402, id_user, "2FA validate failed: user not found")
     if user["secret_a2f"] == "Null" or user.get("statue_a2f") != 2:
-        return api_response({"status": "error"}, 400, id_user, "2FA validate failed: not activated")
+        return api_response({"status": "error"}, 403, id_user, "2FA validate failed: not activated")
 
     totp = pyotp.TOTP(user["secret_a2f"])
     if totp.verify(code):
-            token = encode_jwt({"user_id": id_user, "a2f" : 0}, expires_in=3600)
+            token = encode_jwt({"id": id_user, "a2f" : 0}, expires_in=3600)
             message = "Login successful with 2FA"
             
             return api_response({"status": "success", "token": token}, 200, id_user, message)
 
-    return api_response({'success': False}, 401, id_user, "2FA validate failed: invalid OTP")
+    return api_response({'success': "error"}, 401, id_user, "2FA validate failed: invalid OTP")
 
 
 
@@ -107,9 +108,7 @@ def a2f():
     current_status = check_a2f_status(id_user)
     if current_status == 2:
         return api_response({"status": "error"}, 400, id_user, "2FA activation blocked: already active")
-    elif current_status == 1:
-        return api_response({"status": "error"}, 400, id_user, "2FA activation blocked: pending/medium state")
-
+    
     password = request.json.get("password")
 
     if password is None:
@@ -138,7 +137,12 @@ def a2f():
         "secret": secret,
         "qrcode": f"data:image/png;base64,{qr_code_base64}",
     }, 200, id_user, "Activated 2FA")
-
+    
+@statue_a2f_route.route("/statue_a2f", methods=["GET"])
+def test_a2f():
+    id_user = g.user["id"]
+    statue = check_a2f_status(id_user)
+    return api_response({"status": statue}, 200, id_user, f"statue A2F check is : {statue}")
 
 def generate_qr_code(provisioning_url: str) -> str:
     qr = qrcode.QRCode(
