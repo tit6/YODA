@@ -2,7 +2,7 @@ from contextlib import closing
 
 import pymysql
 
-from config import DATABASE_CONFIG
+from .config import DATABASE_CONFIG
 
 
 def get_db_connection():

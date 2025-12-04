@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 
-from db import fetch_all, fetch_one
+from module.db import fetch_all, fetch_one
 
 database_bp = Blueprint("database", __name__)
 
@@ -15,10 +15,9 @@ def db_test():
         return jsonify(
             {
                 "status": "success",
-                "message": "Connexion MySQL reussie",
                 "mysql_version": version,
                 "tables": tables_list,
             }
         )
     except Exception as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 500
+        return jsonify({"status": "error"}), 500

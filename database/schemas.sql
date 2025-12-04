@@ -54,6 +54,7 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nom` varchar(45) NOT NULL,
+  `prenom` varchar(45) NOT NULL,
   `email` varchar(45) NOT NULL,
   `mdp` varchar(255) NOT NULL,
   `secret_a2f` varchar(32) DEFAULT NULL,
@@ -70,7 +71,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'admin','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0);
+INSERT INTO `users` VALUES (1,'admin', 'prenom','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

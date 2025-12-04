@@ -1,0 +1,470 @@
+openapi: 3.0.3
+info:
+  title: YODA API
+  version: "1.0.0"
+  description: >
+    Documentation Swagger/OpenAPI pour les endpoints Flask.
+    Les routes protégées nécessitent un header Authorization avec un JWT
+    (`Authorization: Bearer <token>`).
+servers:
+  - url: http://localhost:5000
+    description: Local
+tags:
+  - name: health
+    description: État de l'API
+  - name: diagnostics
+    description: Vérification base de données
+  - name: auth
+    description: Connexion et 2FA
+  - name: users
+    description: Profil utilisateur
+  - name: session
+    description: Statut de session et changement de mot de passe
+paths:
+  /api/login:
+    post:
+      tags: [auth]
+      summary: Connexion utilisateur
+      description: Retourne un JWT avec `a2f=1` si la 2FA est activée, sinon `a2f=0`.
+      security: []  # route publique
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              basic:
+                summary: Identifiants valides
+                value:
+                  email: user@example.com
+                  password: secret123
+      responses:
+        "200":
+          description: Succès ou identifiants incorrects
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/LoginSuccess'
+                  - $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Erreur serveur
+  /api/register:
+    post:
+      tags: [auth]
+      summary: Création de compte
+      security: []  # route publique
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                value:
+                  name: Alice
+                  email: alice@example.com
+                  password: P@ssw0rd
+      responses:
+        "200":
+          description: Compte créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterSuccess'
+        "400":
+          description: Champs manquants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Erreur serveur
+  /api/name_user:
+    get:
+      tags: [users]
+      summary: Récupère nom et prénom de l'utilisateur connecté
+      responses:
+        "200":
+          description: Nom trouvé ou non
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/UserNameResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Erreur serveur
+  /api/statue_session:
+    get:
+      tags: [session]
+      summary: Vérifie que la session actuelle est valide
+      responses:
+        "200":
+          description: Session valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        "500":
+          description: Erreur serveur
+  /api/active_a2f:
+    post:
+      tags: [auth]
+      summary: Active la double authentification (2FA)
+      description: Nécessite le mot de passe pour générer un secret TOTP et un QR code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+              required: [password]
+            examples:
+              enable:
+                value:
+                  password: secret123
+      responses:
+        "200":
+          description: 2FA activée, secret et QR code retournés
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  user:
+                    type: integer
+                    example: 1
+                  url:
+                    type: string
+                    description: URL de provisioning OTP
+                  secret:
+                    type: string
+                  qrcode:
+                    type: string
+                    description: Données PNG base64
+        "400":
+          description: Requête invalide ou déjà actif
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/check_a2f:
+    post:
+      tags: [auth]
+      summary: Vérifie un code OTP pendant l'activation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otp:
+                  type: string
+              required: [otp]
+            examples:
+              verify:
+                value:
+                  otp: "123456"
+      responses:
+        "200":
+          description: Code accepté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        "400":
+          description: Données manquantes ou 2FA non activée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Code invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /api/a2f_login:
+    post:
+      tags: [auth]
+      summary: Valide un OTP lors de la connexion 2FA
+      description: >
+        Nécessite un token avec `a2f=1` obtenu via /api/login.
+        Retourne un nouveau token avec `a2f=0` si l'OTP est correct.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otp:
+                  type: string
+              required: [otp]
+            examples:
+              validate:
+                value:
+                  otp: "654321"
+      responses:
+        "200":
+          description: OTP valide et nouveau token retourné
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  token:
+                    type: string
+                    description: JWT avec `a2f=0`
+        "400":
+          description: OTP manquant ou 2FA non requise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: OTP invalide
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+  /api/disable_a2f:
+    post:
+      tags: [auth]
+      summary: Désactive la 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+              required: [password]
+            examples:
+              disable:
+                value:
+                  password: secret123
+      responses:
+        "200":
+          description: 2FA désactivée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessOnly'
+        "400":
+          description: Mot de passe manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/change_password:
+    post:
+      tags: [session]
+      summary: Change le mot de passe de l'utilisateur connecté
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+              required: [old_password, new_password]
+            examples:
+              change:
+                value:
+                  old_password: ancienSecret
+                  new_password: nouveauMotDePasse
+      responses:
+        "200":
+          description: Mot de passe changé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessOnly'
+        "400":
+          description: Champs manquants ou nouveau mot de passe invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Ancien mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Erreur base de données
+  /api/statue_a2f:
+    get:
+      tags: [auth]
+      summary: Retourne l'état actuel de la 2FA pour l'utilisateur connecté
+      responses:
+        "200":
+          description: Statut courant (0 = inactif, 1 = en attente, 2 = actif)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 2
+        "500":
+          description: Erreur serveur
+  /api/db-test:
+    get:
+      tags: [diagnostics]
+      summary: Vérifie la connexion MySQL
+      responses:
+        "200":
+          description: Détails MySQL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  mysql_version:
+                    type: object
+                    description: Résultat brut `SELECT VERSION()`
+                  tables:
+                    type: array
+                    items:
+                      type: string
+                    example: ["users", "logs"]
+        "500":
+          description: Erreur de connexion
+  /api/coucou:
+    get:
+      tags: [health]
+      summary: Ping de santé
+      responses:
+        "200":
+          description: API disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessOnly'
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SuccessOnly:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+    LoginSuccess:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        token:
+          type: string
+          description: JWT
+      required: [status, token]
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [name, email, password]
+    RegisterSuccess:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        user_id:
+          type: integer
+          example: 42
+      required: [status, user_id]
+    UserNameResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        nom:
+          type: string
+          example: Doe
+        prenom:
+          type: string
+          example: John

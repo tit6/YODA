@@ -1,6 +1,5 @@
-
 import jwt
-from config import SECRET_KEY
+from .config import SECRET_KEY
 
 def encode_jwt(payload: dict, expires_in: int = 3600) -> str:
     """Encode a JWT token with an expiration time."""
