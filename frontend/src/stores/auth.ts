@@ -20,9 +20,9 @@ interface TokenJWT {
 export const useAuthStore = defineStore('auth', {
   state: () => {
     const token = localStorage.getItem('auth_token') || ''
+    const email = localStorage.getItem('auth_email') || ''
 
     let requiresA2F = false
-
     if (token) {
       try {
         const decoded = jwtDecode<TokenJWT>(token)
@@ -37,8 +37,7 @@ export const useAuthStore = defineStore('auth', {
       requires_a2f: requiresA2F,
       error: '',
       token,
-        email: ''
-
+      email
     }
   },
 
@@ -72,11 +71,13 @@ export const useAuthStore = defineStore('auth', {
           return
         }
 
-        // Si l'API retourne un token → login OK
+        // Si l'API retourne un token c'est bon
         if (data.token) {
           this.token = data.token
           localStorage.setItem('auth_token', data.token)
-            this.email = credentials.email
+
+          this.email = credentials.email
+          localStorage.setItem('auth_email', this.email)
 
           // mettre à jour le 2FA à partir du JWT
           try {
@@ -103,41 +104,42 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-      checkAuth() {
-  const token = localStorage.getItem('auth_token')
+    checkAuth() {
+      const token = localStorage.getItem('auth_token')
 
-  if (!token) {
-    this.isAuthenticated = false
-    this.requires_a2f = false
-    return false
-  }
+      if (!token) {
+        this.isAuthenticated = false
+        this.requires_a2f = false
+        return false
+      }
 
-  try {
-    const decoded = jwtDecode<TokenJWT>(token)
+      try {
+        const decoded = jwtDecode<TokenJWT>(token)
 
-    // Vérification expiration
-    const currentTime = Math.floor(Date.now() / 1000)
-    if (decoded.exp < currentTime) {
-      console.warn("Token expiré")
-      this.logout()
-      return false
-    }
+        // Vérification expiration
+        const currentTime = Math.floor(Date.now() / 1000)
+        if (decoded.exp < currentTime) {
+          console.warn("Token expiré")
+          this.logout()
+          return false
+        }
 
-    return true
+        return true
 
-  } catch (err) {
-    console.error("JWT invalide:", err)
-    this.logout()
-    return false
-  }
-},
-
+      } catch (err) {
+        console.error("JWT invalide:", err)
+        this.logout()
+        return false
+      }
+    },
 
     logout() {
       this.isAuthenticated = false
       this.token = ''
       this.requires_a2f = false
+      this.email = ''
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_email')
     },
   }
 })
