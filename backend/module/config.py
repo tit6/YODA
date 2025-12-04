@@ -1,4 +1,5 @@
 import os
+import base64
 #import secrets
 
 import pymysql
@@ -20,3 +21,7 @@ DATABASE_CONFIG = {
 
 #SECRET_KEY = secrets.token_hex(4096)
 SECRET_KEY = "coucou"
+
+
+#AES key for rsa otp in db
+APP_MASTER_KEY = os.getenv("APP_MASTER_KEY")
