@@ -91,13 +91,12 @@ const router = createRouter({
   ],
 })
 
-
-
 router.beforeEach((to, from) => {
   const authStore = useAuthStore()
 
+    const auth = useAuthStore()
 
-
+    auth.checkAuth()
 
   // Si l'utilisateur a le 2FA à activer mais n'est pas sur la page de vérification
   if (authStore.requires_a2f && to.name !== 'verify-2fa') {

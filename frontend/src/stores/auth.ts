@@ -37,6 +37,8 @@ export const useAuthStore = defineStore('auth', {
       requires_a2f: requiresA2F,
       error: '',
       token,
+        email: ''
+
     }
   },
 
@@ -74,8 +76,9 @@ export const useAuthStore = defineStore('auth', {
         if (data.token) {
           this.token = data.token
           localStorage.setItem('auth_token', data.token)
+            this.email = credentials.email
 
-          // 🔥 IMPORTANT : mettre à jour le 2FA à partir du JWT
+          // mettre à jour le 2FA à partir du JWT
           try {
             const decoded = jwtDecode<TokenJWT>(data.token)
             this.requires_a2f = decoded.a2f === 1
@@ -99,6 +102,36 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = false
       }
     },
+
+      checkAuth() {
+  const token = localStorage.getItem('auth_token')
+
+  if (!token) {
+    this.isAuthenticated = false
+    this.requires_a2f = false
+    return false
+  }
+
+  try {
+    const decoded = jwtDecode<TokenJWT>(token)
+
+    // Vérification expiration
+    const currentTime = Math.floor(Date.now() / 1000)
+    if (decoded.exp < currentTime) {
+      console.warn("Token expiré")
+      this.logout()
+      return false
+    }
+
+    return true
+
+  } catch (err) {
+    console.error("JWT invalide:", err)
+    this.logout()
+    return false
+  }
+},
+
 
     logout() {
       this.isAuthenticated = false
