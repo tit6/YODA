@@ -42,6 +42,41 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    async register(data: { name: string; prenom: string; email: string; password: string; second_password: string }) {
+      try {
+        this.error = ''
+
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(data),
+          credentials: 'include',
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json()
+          this.error = errorData.error || 'Erreur lors de l\'enregistrement.'
+          return false
+        }
+
+        const responseData = await res.json()
+
+        if (responseData.status === 'error') {
+          this.error = responseData.message || 'Erreur lors de l\'enregistrement.'
+          return false
+        }
+
+        return true
+
+      } catch (err) {
+        this.error = 'Erreur de connexion au serveur'
+        return false
+      }
+    },
+
     async login(credentials: Credentials) {
       try {
         this.error = ''

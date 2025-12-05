@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -26,6 +26,32 @@ const logout = () => {
 const isActive = (routePath: string) => {
   return route.path === routePath
 }
+
+async function fetchUserName() {
+  try {
+    const response = await fetch('/api/name_user', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      credentials: 'include'
+    })
+
+    const data = await response.json()
+
+    if (response.ok && data.status === 'success') {
+      userName.value = `${data.prenom} ${data.nom}`
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération du nom:', error)
+  }
+}
+
+onMounted(() => {
+  fetchUserName()
+})
 </script>
 
 <template>
