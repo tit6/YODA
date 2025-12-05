@@ -20,9 +20,9 @@ interface TokenJWT {
 export const useAuthStore = defineStore('auth', {
   state: () => {
     const token = localStorage.getItem('auth_token') || ''
+    const email = localStorage.getItem('auth_email') || ''
 
     let requiresA2F = false
-
     if (token) {
       try {
         const decoded = jwtDecode<TokenJWT>(token)
@@ -37,10 +37,46 @@ export const useAuthStore = defineStore('auth', {
       requires_a2f: requiresA2F,
       error: '',
       token,
+      email
     }
   },
 
   actions: {
+    async register(data: { name: string; prenom: string; email: string; password: string; second_password: string }) {
+      try {
+        this.error = ''
+
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(data),
+          credentials: 'include',
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json()
+          this.error = errorData.error || 'Erreur lors de l\'enregistrement.'
+          return false
+        }
+
+        const responseData = await res.json()
+
+        if (responseData.status === 'error') {
+          this.error = responseData.message || 'Erreur lors de l\'enregistrement.'
+          return false
+        }
+
+        return true
+
+      } catch (err) {
+        this.error = 'Erreur de connexion au serveur'
+        return false
+      }
+    },
+
     async login(credentials: Credentials) {
       try {
         this.error = ''
@@ -70,12 +106,15 @@ export const useAuthStore = defineStore('auth', {
           return
         }
 
-        // Si l'API retourne un token → login OK
+        // Si l'API retourne un token c'est bon
         if (data.token) {
           this.token = data.token
           localStorage.setItem('auth_token', data.token)
 
-          // 🔥 IMPORTANT : mettre à jour le 2FA à partir du JWT
+          this.email = credentials.email
+          localStorage.setItem('auth_email', this.email)
+
+          // mettre à jour le 2FA à partir du JWT
           try {
             const decoded = jwtDecode<TokenJWT>(data.token)
             this.requires_a2f = decoded.a2f === 1
@@ -100,11 +139,42 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    checkAuth() {
+      const token = localStorage.getItem('auth_token')
+
+      if (!token) {
+        this.isAuthenticated = false
+        this.requires_a2f = false
+        return false
+      }
+
+      try {
+        const decoded = jwtDecode<TokenJWT>(token)
+
+        // Vérification expiration
+        const currentTime = Math.floor(Date.now() / 1000)
+        if (decoded.exp < currentTime) {
+          console.warn("Token expiré")
+          this.logout()
+          return false
+        }
+
+        return true
+
+      } catch (err) {
+        console.error("JWT invalide:", err)
+        this.logout()
+        return false
+      }
+    },
+
     logout() {
       this.isAuthenticated = false
       this.token = ''
       this.requires_a2f = false
+      this.email = ''
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_email')
     },
   }
 })

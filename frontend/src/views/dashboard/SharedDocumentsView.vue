@@ -34,43 +34,6 @@ const shareForm = ref({
 
 // Données de démonstration
 const sharedDocuments = ref<SharedDocument[]>([
-  {
-    id: 1,
-    documentName: 'Bilan 2024 - Confidentiel.pdf',
-    recipient: 'client@entreprise.com',
-    createdAt: '2024-01-15 14:30',
-    expiresAt: '2024-01-17 14:30',
-    accessType: 'read',
-    hasPassword: true,
-    link: 'https://yoda-vault.com/s/a7b3c9d2',
-    accessCount: 3,
-    maxAccess: 10,
-    status: 'active'
-  },
-  {
-    id: 2,
-    documentName: 'Contrat Commercial 2024.pdf',
-    recipient: 'partenaire@societe.fr',
-    createdAt: '2024-01-10 09:15',
-    expiresAt: '2024-01-12 09:15',
-    accessType: 'download',
-    hasPassword: true,
-    link: 'https://yoda-vault.com/s/x1y2z3a4',
-    accessCount: 15,
-    status: 'expired'
-  },
-  {
-    id: 3,
-    documentName: 'Facture_2024_001.pdf',
-    recipient: 'comptable@cabinet.fr',
-    createdAt: '2024-01-14 11:00',
-    expiresAt: '2024-01-21 11:00',
-    accessType: 'download',
-    hasPassword: false,
-    link: 'https://yoda-vault.com/s/p9q8r7s6',
-    accessCount: 1,
-    status: 'active'
-  }
 ])
 
 const filteredDocuments = computed(() => {

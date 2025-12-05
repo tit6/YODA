@@ -76,10 +76,21 @@ const handleSubmit = async () => {
       return
     }
 
-    await router.push({
-      name: 'email-validation',
-      state: {email: email.value}
+    const success = await authStore.register({
+      name: name.value,
+      prenom: firstName.value,
+      email: email.value,
+      password: password.value,
+      second_password: confirmPassword.value
     })
+
+    if (success) {
+      await authStore.login({ email: email.value, password: password.value })
+
+      if (!authStore.error && authStore.isAuthenticated) {
+        await router.push({path: '/dashboard/documents'})
+      }
+    }
   }
 }
 </script>
@@ -148,7 +159,7 @@ const handleSubmit = async () => {
                 placeholder="********"
                 required
               />
-              <p style="color: red; font-size: 15px" v-if="submitted && isLogin && authStore.error">{{ authStore.error }}</p>
+              <p style="color: red; font-size: 15px" v-if="submitted && authStore.error">{{ authStore.error }}</p>
 
               <!-- Indicateur de force du mot de passe (seulement en mode enregistrement) -->
               <div v-if="!isLogin" class="password-strength">

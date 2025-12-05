@@ -5,13 +5,21 @@ import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 const showPasswordModal = ref(false)
 const showA2FModal = ref(false)
+const showDisableA2FModal = ref(false)
 const password = ref('')
 const otpcode = ref('')
 const qrCodeBase64 = ref('')
 const secretKey = ref('')
+const disablePassword = ref('')
+const disableOtp = ref('')
+const isA2FActive = ref(false)
 
 async function check_password_a2f() {
-  showPasswordModal.value = true
+  if (isA2FActive.value) {
+    showDisableA2FModal.value = true
+  } else {
+    showPasswordModal.value = true
+  }
 }
 
 function closePasswordModal() {
@@ -51,7 +59,6 @@ async function confirmPassword() {
   }
 }
 
-
 function closeA2FModal() {
   showA2FModal.value = false
 }
@@ -72,6 +79,7 @@ async function status_a2f() {
   let btn = document.getElementById("a2f_button");
 
   if (data.status === 2) {
+    isA2FActive.value = true
     if (statusss && btn) {
       statusss.classList.add("active")
       statusss.textContent = "Activée"
@@ -79,6 +87,7 @@ async function status_a2f() {
       btn.style.backgroundColor = "#EF1C43";
     }
   } else {
+    isA2FActive.value = false
     if (statusss && btn) {
       statusss.classList.add("inactive")
       statusss.textContent = "Désactivée"
@@ -116,6 +125,43 @@ function copySecretKey() {
     .catch(() => alert('Erreur lors de la copie'))
 }
 
+function closeDisableA2FModal() {
+  showDisableA2FModal.value = false
+  disablePassword.value = ''
+  disableOtp.value = ''
+}
+
+async function confirmDisableA2F() {
+  try {
+    const response = await fetch('/api/disable_a2f', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        password: disablePassword.value,
+        otp: disableOtp.value
+      }),
+      credentials: 'include'
+    })
+
+    const data = await response.json()
+
+    if (response.ok && data.status === 'success') {
+      await status_a2f()
+      showDisableA2FModal.value = false
+      disablePassword.value = ''
+      disableOtp.value = ''
+    } else {
+      alert('Mot de passe ou code incorrect')
+    }
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert('Erreur de connexion')
+  }
+}
 
 onMounted(() => {
   status_a2f();
@@ -231,6 +277,39 @@ onMounted(() => {
       <div class="modal-actions">
         <button class="cancel-btn" @click="closeA2FModal">Annuler</button>
         <button class="confirm-btn" @click="confirmA2F">Activer l'A2F</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de désactivation A2F -->
+  <div class="modal-password-a2f" v-if="showDisableA2FModal" @click="closeDisableA2FModal">
+    <div class="modal-content" @click.stop>
+      <h3>Désactiver l'authentification à double facteur</h3>
+      <div class="input-group">
+        <label for="disable-password">Mot de passe</label>
+        <input
+          id="disable-password"
+          v-model="disablePassword"
+          type="password"
+          placeholder="Votre mot de passe"
+        />
+      </div>
+
+      <div class="input-group">
+        <label for="disable-otp">Code de vérification</label>
+        <input
+          id="disable-otp"
+          v-model="disableOtp"
+          type="text"
+          placeholder="000000"
+          maxlength="6"
+          style="text-align: center; letter-spacing: 8px; font-family: 'Courier New', monospace; font-size: 18px;"
+        />
+      </div>
+
+      <div class="modal-actions">
+        <button class="cancel-btn" @click="closeDisableA2FModal">Annuler</button>
+        <button class="confirm-btn" @click="confirmDisableA2F">Désactiver l'A2F</button>
       </div>
     </div>
   </div>
