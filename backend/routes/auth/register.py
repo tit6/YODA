@@ -3,6 +3,8 @@ from bcrypt import hashpw, gensalt
 from module.db import execute_write
 from flask import Blueprint, jsonify, request
 
+from module.crypto import verifier_password
+
 register_bp = Blueprint("register", __name__)
 
 
@@ -36,6 +38,9 @@ def register():
 
     if hash_str != second_hash_str:
         return jsonify({"status": "error"}), 400
+    
+    if verifier_password(password):
+        return jsonify({"status": "error"}), 401
 
     try:
         rowcount, user_id = execute_write(

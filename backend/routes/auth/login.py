@@ -4,7 +4,7 @@ from bcrypt import checkpw
 from module.db import fetch_one
 from module.jwt_ag import encode_jwt
 from module.api_retour import api_response
-from routes.a2f import check_a2f_status
+from routes.auth.a2f import check_a2f_status
 
 login_bp = Blueprint("login", __name__)
 

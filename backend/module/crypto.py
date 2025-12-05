@@ -36,3 +36,18 @@ def aes256_decrypt(b64_data: str) -> bytes:
     plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size)
     return plaintext
 
+
+
+def verifier_password(password: str) -> bool:
+    if len(password) < 16:
+        return False
+
+    # Au moins 4 chiffres
+    if len(re.findall(r"\d", password)) < 4:
+        return False
+
+    # Au moins 1 caractère spécial (non alphanumérique)
+    if not re.search(r"[^a-zA-Z0-9]", password):
+        return False
+
+    return True
