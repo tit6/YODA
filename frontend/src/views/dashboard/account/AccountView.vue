@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -13,6 +13,38 @@ const secretKey = ref('')
 const disablePassword = ref('')
 const disableOtp = ref('')
 const isA2FActive = ref(false)
+
+const oldPassword = ref('')
+const newPassword = ref('')
+const confirmNewPassword = ref('')
+const passwordChangeSubmitted = ref(false)
+const passwordChangeError = ref('')
+
+const passwordStrength = computed(() => {
+  if (!newPassword.value) return 0
+
+  let strength = 0
+  const pwd = newPassword.value
+
+  if (pwd.length >= 16) strength++
+  if (/[a-z]/.test(pwd)) strength++
+  if (/[A-Z]/.test(pwd)) strength++
+  if (/[0-9]/.test(pwd)) strength++
+  if (/[^a-zA-Z0-9]/.test(pwd)) strength++
+
+  if (strength <= 2) return 1
+  if (strength <= 4) return 2
+  return 3
+})
+
+const isPasswordValid = computed(() => {
+  const pwd = newPassword.value
+  return pwd.length >= 16 &&
+         /[a-z]/.test(pwd) &&
+         /[A-Z]/.test(pwd) &&
+         /[0-9]/.test(pwd) &&
+         /[^a-zA-Z0-9]/.test(pwd)
+})
 
 async function check_password_a2f() {
   if (isA2FActive.value) {
@@ -154,12 +186,60 @@ async function confirmDisableA2F() {
       showDisableA2FModal.value = false
       disablePassword.value = ''
       disableOtp.value = ''
+      alert('A2F désactivée avec succès')
     } else {
       alert('Mot de passe ou code incorrect')
     }
   } catch (error) {
     console.error('Erreur:', error)
     alert('Erreur de connexion')
+  }
+}
+
+async function handleChangePassword() {
+  passwordChangeSubmitted.value = true
+  passwordChangeError.value = ''
+
+  if (newPassword.value !== confirmNewPassword.value) {
+    passwordChangeError.value = 'Les mots de passe ne correspondent pas.'
+    return
+  }
+
+  if (!isPasswordValid.value) {
+    passwordChangeError.value = 'Le mot de passe ne respecte pas les critères requis.'
+    return
+  }
+
+  try {
+    const response = await fetch('/api/change_password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        old_password: oldPassword.value,
+        new_password: newPassword.value,
+        confirme_password: confirmNewPassword.value
+      }),
+      credentials: 'include'
+    })
+
+    const data = await response.json()
+
+    if (response.ok && data.status === 'success') {
+      alert('Mot de passe changé avec succès')
+      oldPassword.value = ''
+      newPassword.value = ''
+      confirmNewPassword.value = ''
+      passwordChangeSubmitted.value = false
+    } else {
+      passwordChangeError.value = 'Ancien mot de passe incorrect'
+    }
+  } catch (error) {
+    console.error('Erreur:', error)
+    passwordChangeError.value = 'Erreur de connexion'
   }
 }
 
@@ -174,33 +254,53 @@ onMounted(() => {
 
     <div class="section">
       <h3 class="section-title">Mot de passe</h3>
-      <div class="change-password-form">
+      <form @submit.prevent="handleChangePassword" class="change-password-form">
         <div class="input-group">
           <label for="old-password">Ancien mot de passe</label>
           <input
             id="old-password"
+            v-model="oldPassword"
             type="password"
             placeholder="Entrez votre mot de passe actuel"
+            required
           />
         </div>
         <div class="input-group">
           <label for="new-password">Nouveau mot de passe</label>
           <input
             id="new-password"
+            v-model="newPassword"
             type="password"
             placeholder="Entrez votre nouveau mot de passe"
+            required
           />
+
+          <div class="password-strength">
+            <div class="strength-bars">
+              <div class="strength-bar" :class="{ weak: passwordStrength === 1, medium: passwordStrength === 2, strong: passwordStrength === 3 }"></div>
+              <div class="strength-bar" :class="{ medium: passwordStrength === 2, strong: passwordStrength === 3 }"></div>
+              <div class="strength-bar" :class="{ strong: passwordStrength === 3 }"></div>
+            </div>
+            <p class="password-requirements" v-if="newPassword && !isPasswordValid">
+              Minimum requis : 16 caractères, 1 minuscule, 1 majuscule, 1 chiffre, 1 caractère spécial
+            </p>
+          </div>
         </div>
         <div class="input-group">
           <label for="confirm-password">Confirmer le nouveau mot de passe</label>
           <input
             id="confirm-password"
+            v-model="confirmNewPassword"
             type="password"
             placeholder="Confirmez votre nouveau mot de passe"
+            required
           />
         </div>
-        <button class="submit-btn">Changer le mot de passe</button>
-      </div>
+
+        <p v-if="passwordChangeSubmitted && passwordChangeError" class="error-message">{{ passwordChangeError }}</p>
+
+        <button type="submit" class="submit-btn">Changer le mot de passe</button>
+      </form>
     </div>
 
     <div class="section">
@@ -751,5 +851,48 @@ onMounted(() => {
   outline: none;
   border-color: var(--primary-color);
   background-color: var(--secondary-color);
+}
+
+/* Password strength indicator */
+.password-strength {
+  margin-top: 8px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background-color: #e5e5e5;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.strength-bar.weak {
+  background-color: #ff4444;
+}
+
+.strength-bar.medium {
+  background-color: #ffaa00;
+}
+
+.strength-bar.strong {
+  background-color: #00c851;
+}
+
+.password-requirements {
+  font-size: 12px;
+  color: var(--primary-active-color);
+  margin: 4px 0 0 0;
+}
+
+.error-message {
+  color: var(--red-warning);
+  font-size: 14px;
+  margin: 0;
 }
 </style>
