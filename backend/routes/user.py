@@ -2,7 +2,9 @@ from flask import Blueprint, jsonify, request, g
 from bcrypt import checkpw, gensalt, hashpw
 from module.db import fetch_one, execute_write
 from module.api_retour import api_response
-from .a2f import is_password_valid
+from .auth.a2f import is_password_valid
+from module.crypto import verifier_password
+import re
 
 
 name_user = Blueprint("name_user", __name__)
@@ -35,12 +37,16 @@ def change_passwords():
     id = g.user["id"]
     old_password = request.json.get("old_password")
     new_password = request.json.get("new_password")
+    confirme_password = request.json.get("confirme_password")
 
-    if not old_password or not new_password:
+    if not old_password or not new_password or not confirme_password:
         return api_response({"status": "error"}, 400, id, "Change password failed: missing fields")
-    
-    if len(new_password) < 16:
-        return api_response({"status": "error"}, 400, id, "Change password failed: new password too short")
+
+    if confirme_password != new_password:
+        return api_response({"status": "error"}, 405, id, "Change password failed: missing fields")
+
+    if verifier_password(new_password):
+        return api_response({"status": "error"}, 402, id, "Change password failed: new password too short or not 4 int or special caracter")
 
     mdp = fetch_one("SELECT mdp FROM users WHERE id = %s", (id,))
     if mdp is None:
@@ -50,7 +56,7 @@ def change_passwords():
     
     #He egal
     if is_password_valid(new_password, mdp["mdp"]):
-        return api_response({"status": "error"}, 400, id, "Change password failed: new password matches old password")
+        return api_response({"status": "error"}, 404, id, "Change password failed: new password matches old password")
     
     salt = gensalt()
     new_hash_bytes = hashpw(new_password.encode("utf-8"), salt)
@@ -65,3 +71,5 @@ def change_passwords():
         return api_response({"status": "error"}, 500, id, "Change password failed: database error")
 
     return api_response({"status": "success"}, 200, id, "Password changed successfully")
+
+
