@@ -65,6 +65,34 @@ CREATE TABLE `documents` (
     FOREIGN KEY (`id_folder`) REFERENCES `folders` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+
+-- 5)  shared file
+CREATE TABLE `shared_files` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `id_document` INT NOT NULL,      -- fichier partagé
+  `id_owner` INT NOT NULL,         -- propriétaire (créateur du partage)
+  `token` VARCHAR(128) NOT NULL,   -- lien unique
+  `password` VARCHAR(255) NOT NULL,
+  `expires_at` DATETIME NOT NULL,  -- date d’expiration
+  `max_views` INT DEFAULT NULL,    -- nombre max de vues (optionnel)
+  `views_count` INT NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token_UNIQUE` (`token`),
+  KEY `idx_shared_document` (`id_document`),
+  KEY `idx_shared_owner` (`id_owner`),
+
+  CONSTRAINT `fk_shared_document`
+    FOREIGN KEY (`id_document`) REFERENCES `documents` (`id`) ON DELETE CASCADE,
+
+  CONSTRAINT `fk_shared_owner`
+    FOREIGN KEY (`id_owner`) REFERENCES `users` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- données de test
 INSERT INTO users VALUES (1,'admin', 'prenom','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0);
 
