@@ -11,22 +11,19 @@ login_bp = Blueprint("login", __name__)
 
 @login_bp.route("/login", methods=["POST"])
 def login():
-    print("Login route accessed")
     email = request.json.get("email")
     password = request.json.get("password")
-
-    print(f"Logging in user: {email}, {password}")
 
     try :
         mdp = fetch_one("SELECT id, mdp FROM users WHERE email = %s", (email,))
         if mdp is None:
-            return jsonify({"status": "error"}), 200
+            return jsonify({"status": "error"}), 403
         
 
         motdepasse_bytes = password.encode("utf-8")
         hash_bytes = mdp['mdp'].encode("utf-8")
         if not checkpw(motdepasse_bytes, hash_bytes):
-            return jsonify({"status": "error"}), 200
+            return jsonify({"status": "error"}), 403
         
         else :
 

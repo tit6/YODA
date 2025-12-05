@@ -3,6 +3,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 import base64
 from module.config import APP_MASTER_KEY
+import re
 
 
 def aes256_encrypt(data: bytes) -> str:
@@ -39,11 +40,11 @@ def aes256_decrypt(b64_data: str) -> bytes:
 
 
 def verifier_password(password: str) -> bool:
-    if len(password) < 16:
+    if len(password) > 16:
         return False
 
     # Au moins 4 chiffres
-    if len(re.findall(r"\d", password)) < 4:
+    if len(re.findall(r"\d", password)) < 1:
         return False
 
     # Au moins 1 caractère spécial (non alphanumérique)
