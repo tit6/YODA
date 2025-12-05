@@ -8,6 +8,7 @@ import qrcode
 import qrcode.image.pure
 from bcrypt import checkpw
 from module.api_retour import api_response
+from module.crypto import aes256_encrypt, aes256_decrypt
 
 active_a2f = Blueprint("a2f", __name__)
 check_a2f = Blueprint("a2fc", __name__)
@@ -30,14 +31,21 @@ def is_password_valid(password: str, hashed_password: str) -> bool:
 def a2fd():
     id_user = g.user["id"]
     password = request.json.get("password")
+    otp = request.json.get("otp")
     if password is None:
         return api_response({"status": "error"}, 400, id_user, "2FA disable failed: missing password")
     
-    mdp = fetch_user_fields(id_user, ("mdp",))
+    mdp = fetch_user_fields(id_user, ("mdp", "secret_a2f"))
     if mdp is None:
         return api_response({"status": "error"}, 404, id_user, "2FA disable failed: user not found")
-    if not is_password_valid(password, mdp["mdp"]):
+    if not is_password_valid(password, mdp["mdp"]) or (not mdp["secret_a2f"]):
         return api_response({"status": "error"}, 401, id_user, "2FA disable failed: bad password")
+
+
+    decrypted_key = aes256_decrypt(mdp["secret_a2f"])
+    totp = pyotp.TOTP(decrypted_key)
+    if not totp.verify(otp):
+        return api_response({"status": "error"}, 401, id_user, "2FA disable failed: invalid OTP")
 
     if not update_otp_status("Null", 0, id_user):
         return api_response({"status": "error"}, 500, id_user, "2FA disable failed: DB error")
@@ -61,8 +69,9 @@ def a2fc():
         return api_response({"status": "error"}, 400, id_user, "2FA check failed: not activated")
     
     secret = mdp["secret_a2f"]
+    key_decrypted = aes256_decrypt(secret)
 
-    totp = pyotp.TOTP(secret)
+    totp = pyotp.TOTP(key_decrypted)
 
     # Verify the code
     if totp.verify(code):
@@ -91,7 +100,8 @@ def validate_a2f():
     if user["secret_a2f"] == "Null" or user.get("statue_a2f") != 2:
         return api_response({"status": "error"}, 403, id_user, "2FA validate failed: not activated")
 
-    totp = pyotp.TOTP(user["secret_a2f"])
+    key_decrypted = aes256_decrypt(user["secret_a2f"])
+    totp = pyotp.TOTP(key_decrypted)
     if totp.verify(code):
             token = encode_jwt({"id": id_user, "a2f" : 0}, expires_in=3600)
             message = "Login successful with 2FA"
@@ -126,8 +136,10 @@ def a2f():
     provisioning_url = totp.provisioning_uri(name=str(id_user), issuer_name="YODA")
 
     qr_code_base64 = generate_qr_code(provisioning_url)
+
+    secret_encrypted = aes256_encrypt(secret.encode())
     
-    if not update_otp_status(secret, 1, id_user):
+    if not update_otp_status(secret_encrypted, 1, id_user):
         return api_response({"status": "error"}, 500, id_user, "2FA activation failed: DB error")
 
     return api_response({

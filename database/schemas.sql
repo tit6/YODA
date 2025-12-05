@@ -57,7 +57,7 @@ CREATE TABLE `users` (
   `prenom` varchar(45) NOT NULL,
   `email` varchar(45) NOT NULL,
   `mdp` varchar(255) NOT NULL,
-  `secret_a2f` varchar(32) DEFAULT NULL,
+  `secret_a2f` varchar(128) DEFAULT NULL,
   `statue_a2f` INT DEFAULT '0' NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),

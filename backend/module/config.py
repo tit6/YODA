@@ -23,5 +23,17 @@ DATABASE_CONFIG = {
 SECRET_KEY = "coucou"
 
 
-#AES key for rsa otp in db
-APP_MASTER_KEY = os.getenv("APP_MASTER_KEY")
+#AES key for rsa otp in db (base64 in .env → bytes for AES)
+def _load_master_key() -> bytes | None:
+    raw_key = (os.getenv("APP_MASTER_KEY") or "").strip()
+    if not raw_key:
+        return None
+    try:
+        key_bytes = base64.b64decode(raw_key)
+    except Exception as exc:
+        raise ValueError("APP_MASTER_KEY must be valid base64") from exc
+    if len(key_bytes) not in (16, 24, 32):
+        raise ValueError(f"APP_MASTER_KEY must decode to 16, 24 or 32 bytes, got {len(key_bytes)}")
+    return key_bytes
+
+APP_MASTER_KEY = _load_master_key()

@@ -45,7 +45,7 @@ def ensure_master_key():
         os.environ["APP_MASTER_KEY"] = new_key
         try:
             import module.config as config
-            config.APP_MASTER_KEY = new_key
+            config.APP_MASTER_KEY = base64.b64decode(new_key)
         except Exception:
             pass
 
