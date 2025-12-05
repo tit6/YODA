@@ -39,7 +39,7 @@ def change_passwords():
     if not old_password or not new_password:
         return api_response({"status": "error"}, 400, id, "Change password failed: missing fields")
     
-    if len(new_password) < 8:
+    if len(new_password) < 16:
         return api_response({"status": "error"}, 400, id, "Change password failed: new password too short")
 
     mdp = fetch_one("SELECT mdp FROM users WHERE id = %s", (id,))
