@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 
 const router = useRouter()
 const route = useRoute()
 
 const userName = ref('Jean Dupont')
-const userEmail = ref('jean.dupont@example.com')
+const userEmail = computed(() => authStore.email)
 
 const isSidebarCollapsed = ref(false)
 const showUserMenu = ref(false)
@@ -17,7 +19,6 @@ const toggleSidebar = () => {
 }
 
 const logout = () => {
-  const authStore = useAuthStore()
   authStore.logout()
   router.push('login')
 }
