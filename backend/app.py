@@ -8,8 +8,9 @@ from module.middleware import auth_middleware
 
 from routes import register_blueprints
 
-# Chemin fixe : fichier .env situé à côté de app.py (monté dans le conteneur)
-ENV_PATH = Path(__file__).resolve().parent / ".env"
+# Prioritize an existing .env: same folder as app.py, otherwise project root.
+APP_DIR = Path(__file__).resolve().parent
+ENV_PATH = APP_DIR / ".env" if (APP_DIR / ".env").exists() else (APP_DIR.parent / ".env")
 
 def ensure_master_key():
     """

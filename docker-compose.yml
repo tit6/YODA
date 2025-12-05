@@ -35,7 +35,7 @@ services:
       - .env
     volumes:
       - ./backend:/app
-      - ./.env:/app/.env
+      - ./.env:/.env
       - /app/__pycache__
 
   # Frontend Vite/JS qui consomme l'API backend
