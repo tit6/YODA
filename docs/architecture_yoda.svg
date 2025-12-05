@@ -1,0 +1,236 @@
+<svg viewBox="0 0 1500 1100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 32px 'Segoe UI', sans-serif; fill: #1a1a2e; }
+      .subtitle { font: 14px 'Segoe UI', sans-serif; fill: #576574; }
+      .section-title { font: bold 16px 'Segoe UI', sans-serif; fill: #2c3e50; }
+      .text { font: 14px 'Segoe UI', sans-serif; fill: #2c3e50; }
+      .small-text { font: 12px 'Segoe UI', sans-serif; fill: #576574; }
+      .white-text { font: bold 14px 'Segoe UI', sans-serif; fill: #ffffff; }
+      .white-small { font: 12px 'Segoe UI', sans-serif; fill: #ffffff; }
+      .container-label { font: bold 16px 'Segoe UI', sans-serif; fill: #ffffff; }
+      .badge { font: bold 10px 'Segoe UI', sans-serif; fill: #ffffff; }
+      
+      .component { fill: #ffffff; stroke: #dfe6e9; stroke-width: 2; rx: 8; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08)); }
+      
+      .vue-box { fill: #42b883; stroke: #35a372; stroke-width: 2; rx: 6; }
+      .flask-box { fill: #0088cc; stroke: #006ba6; stroke-width: 2; rx: 6; }
+      .db-box { fill: #336791; stroke: #2a5373; stroke-width: 2; rx: 6; }
+      .minio-box { fill: #c72e49; stroke: #a6233b; stroke-width: 2; rx: 6; }
+      .crypto-box { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; rx: 6; }
+      .client-box { fill: #636e72; stroke: #4a5568; stroke-width: 2; rx: 6; }
+      
+      .container-frontend { fill: #f0fdf4; stroke: #22c55e; stroke-width: 2.5; rx: 12; }
+      .container-backend { fill: #eff6ff; stroke: #3b82f6; stroke-width: 2.5; rx: 12; }
+      .container-database { fill: #eff6ff; stroke: #336791; stroke-width: 2.5; rx: 12; }
+      .container-minio { fill: #fef2f2; stroke: #ef4444; stroke-width: 2.5; rx: 12; }
+      .container-client { fill: #f8fafc; stroke: #64748b; stroke-width: 2.5; rx: 12; }
+      
+      .arrow { stroke: #475569; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+      .crypto-arrow { stroke: #ef4444; stroke-width: 2.5; fill: none; marker-end: url(#arrow-red); }
+      .data-arrow { stroke: #3b82f6; stroke-width: 2.5; fill: none; marker-end: url(#arrow-blue); stroke-dasharray: 8,4; }
+      
+      .badge-impl { fill: #22c55e; rx: 3; }
+      .badge-plan { fill: #f59e0b; rx: 3; }
+    </style>
+    
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#34495e" />
+    </marker>
+    <marker id="arrow-red" markerWidth="12" markerHeight="12" refX="10" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#e74c3c" />
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#3498db" />
+    </marker>
+  </defs>
+
+  <!-- Titre -->
+  <text x="750" y="60" class="title" text-anchor="middle">Architecture YODA</text>
+  <text x="750" y="90" class="subtitle" text-anchor="middle">Coffre-Fort Numérique • Zero-Knowledge • Chiffrement End-to-End</text>
+
+  <!-- =================== CLIENT =================== -->
+  <rect x="480" y="140" width="540" height="140" class="container-client"/>
+  
+  <rect x="480" y="140" width="540" height="45" fill="#64748b" stroke="#475569" stroke-width="2.5" rx="12 12 0 0"/>
+  <text x="750" y="170" class="container-label" text-anchor="middle">CLIENT - Navigateur Web</text>
+  
+  <rect x="510" y="205" width="220" height="60" class="client-box"/>
+  <text x="620" y="230" class="white-text" text-anchor="middle">Interface Utilisateur</text>
+  <text x="620" y="250" class="white-small" text-anchor="middle">Web Crypto API</text>
+  
+  <rect x="770" y="205" width="220" height="60" class="crypto-box"/>
+  <text x="880" y="230" class="white-text" text-anchor="middle">Clés RSA Locales</text>
+  <text x="880" y="250" class="white-small" text-anchor="middle">IndexedDB • Privé uniquement</text>
+
+  <!-- =================== CONTENEUR 1: FRONTEND =================== -->
+  <rect x="50" y="320" width="680" height="330" class="container-frontend"/>
+  
+  <rect x="50" y="320" width="680" height="45" fill="#22c55e" stroke="#16a34a" stroke-width="2.5" rx="12 12 0 0"/>
+  <text x="390" y="350" class="container-label" text-anchor="middle">FRONTEND - Vue.js 3 + TypeScript</text>
+  
+  <!-- Vues Interface -->
+  <rect x="75" y="385" width="290" height="240" class="component"/>
+  <text x="220" y="410" class="section-title" text-anchor="middle">Interface Utilisateur</text>
+  
+  <rect x="95" y="430" width="250" height="40" class="vue-box"/>
+  <text x="220" y="454" class="white-text" text-anchor="middle">Authentification 2FA</text>
+  
+  <rect x="95" y="480" width="250" height="40" class="vue-box"/>
+  <text x="220" y="504" class="white-text" text-anchor="middle">Dashboard Documents</text>
+  
+  <rect x="95" y="530" width="250" height="40" class="vue-box"/>
+  <text x="220" y="554" class="white-text" text-anchor="middle">Gestion Fichiers</text>
+  
+  <rect x="95" y="580" width="250" height="30" class="vue-box"/>
+  <text x="220" y="599" class="white-text" text-anchor="middle">Profil Utilisateur</text>
+
+  <!-- Cryptographie Client-Side -->
+  <rect x="390" y="385" width="315" height="240" class="component"/>
+  <text x="547" y="410" class="section-title" text-anchor="middle">Cryptographie Client-Side</text>
+  
+  <rect x="410" y="430" width="275" height="42" class="crypto-box"/>
+  <text x="547" y="447" class="white-text" text-anchor="middle">Génération Clés AES-256</text>
+  <text x="547" y="463" class="white-small" text-anchor="middle">DEK/SEK + IV unique par fichier</text>
+  
+  <rect x="410" y="482" width="275" height="42" class="crypto-box"/>
+  <text x="547" y="499" class="white-text" text-anchor="middle">Chiffrement AES-256-GCM</text>
+  <text x="547" y="515" class="white-small" text-anchor="middle">Web Crypto API native</text>
+  
+  <rect x="410" y="534" width="275" height="38" class="crypto-box"/>
+  <text x="547" y="557" class="white-text" text-anchor="middle">Wrapping RSA-OAEP-256</text>
+  
+  <rect x="410" y="582" width="275" height="30" class="crypto-box"/>
+  <text x="547" y="601" class="white-text" text-anchor="middle">Hash SHA-256</text>
+
+  <!-- =================== CONTENEUR 2: BACKEND =================== -->
+  <rect x="770" y="320" width="680" height="330" class="container-backend"/>
+  
+  <rect x="770" y="320" width="680" height="45" fill="#3b82f6" stroke="#2563eb" stroke-width="2.5" rx="12 12 0 0"/>
+  <text x="1110" y="350" class="container-label" text-anchor="middle">BACKEND - Python Flask + JWT</text>
+  
+  <!-- API Routes -->
+  <rect x="795" y="385" width="290" height="240" class="component"/>
+  <text x="940" y="410" class="section-title" text-anchor="middle">Routes API REST</text>
+  
+  <rect x="815" y="430" width="250" height="40" class="flask-box"/>
+  <text x="940" y="454" class="white-text" text-anchor="middle">/api/register</text>
+  
+  <rect x="815" y="480" width="250" height="40" class="flask-box"/>
+  <text x="940" y="504" class="white-text" text-anchor="middle">/api/login + 2FA</text>
+  
+  <rect x="815" y="530" width="250" height="40" class="flask-box"/>
+  <text x="940" y="554" class="white-text" text-anchor="middle">/api/a2f/* (TOTP)</text>
+  
+  <rect x="815" y="580" width="250" height="30" class="flask-box"/>
+  <text x="940" y="599" class="white-text" text-anchor="middle">/api/user, /api/docs</text>
+
+  <!-- Services Métier -->
+  <rect x="1110" y="385" width="315" height="240" class="component"/>
+  <text x="1267" y="410" class="section-title" text-anchor="middle">Modules &amp; Services</text>
+  
+  <rect x="1130" y="430" width="275" height="40" class="flask-box"/>
+  <text x="1267" y="454" class="white-text" text-anchor="middle">JWT Middleware</text>
+  
+  <rect x="1130" y="480" width="275" height="40" class="flask-box"/>
+  <text x="1267" y="504" class="white-text" text-anchor="middle">Database Layer (PyMySQL)</text>
+  
+  <rect x="1130" y="530" width="275" height="40" class="flask-box"/>
+  <text x="1267" y="554" class="white-text" text-anchor="middle">2FA Service (pyotp)</text>
+  
+  <rect x="1130" y="580" width="275" height="30" class="flask-box"/>
+  <text x="1267" y="599" class="white-text" text-anchor="middle">Config &amp; Crypto</text>
+
+  <!-- =================== CONTENEUR 3: DATABASE =================== -->
+  <rect x="50" y="690" width="680" height="290" class="container-database"/>
+  
+  <rect x="50" y="690" width="680" height="45" fill="#336791" stroke="#2a5373" stroke-width="2.5" rx="12 12 0 0"/>
+  <text x="390" y="720" class="container-label" text-anchor="middle">DATABASE - MySQL 8</text>
+  
+  <!-- Tables -->
+  <rect x="75" y="755" width="290" height="200" class="component"/>
+  <text x="220" y="780" class="section-title" text-anchor="middle">Schéma de Données</text>
+  
+  <rect x="95" y="805" width="250" height="45" class="db-box"/>
+  <text x="220" y="824" class="white-text" text-anchor="middle">users</text>
+  <text x="220" y="841" class="white-small" text-anchor="middle">email • password_hash • 2fa_secret</text>
+  
+  <rect x="95" y="860" width="250" height="48" class="db-box"/>
+  <text x="220" y="879" class="white-text" text-anchor="middle">documents</text>
+  <text x="220" y="896" class="white-small" text-anchor="middle">wrapped_dek • iv • hash • path</text>
+  
+  <rect x="95" y="918" width="250" height="30" class="db-box"/>
+  <text x="220" y="937" class="white-text" text-anchor="middle">sessions</text>
+
+  <!-- Schemas -->
+  <rect x="390" y="755" width="315" height="200" class="component"/>
+  <text x="547" y="780" class="section-title" text-anchor="middle">Sécurité Zero-Knowledge</text>
+  
+  <rect x="410" y="808" width="275" height="130" class="db-box"/>
+  <text x="547" y="830" class="white-text" text-anchor="middle">Aucune donnée en clair</text>
+  <text x="547" y="860" class="white-small" text-anchor="middle">• Passwords hashés (bcrypt)</text>
+  <text x="547" y="884" class="white-small" text-anchor="middle">• Clés publiques RSA uniquement</text>
+  <text x="547" y="908" class="white-small" text-anchor="middle">• DEK/SEK chiffrées</text>
+  <text x="547" y="932" class="white-small" text-anchor="middle">• Master key auto-générée</text>
+
+  <!-- =================== CONTENEUR 4: MINIO =================== -->
+  <rect x="770" y="690" width="680" height="290" class="container-minio"/>
+  
+  <rect x="770" y="690" width="680" height="45" fill="#ef4444" stroke="#dc2626" stroke-width="2.5" rx="12 12 0 0"/>
+  <text x="1110" y="720" class="container-label" text-anchor="middle">STORAGE - MinIO (S3-Compatible)</text>
+  
+  <!-- Buckets -->
+  <rect x="795" y="755" width="290" height="200" class="component"/>
+  <text x="940" y="780" class="section-title" text-anchor="middle">Buckets Organisés</text>
+  
+  <rect x="815" y="808" width="250" height="60" class="minio-box"/>
+  <text x="940" y="833" class="white-text" text-anchor="middle">encrypted-documents/</text>
+  <text x="940" y="854" class="white-small" text-anchor="middle">Fichiers chiffrés par utilisateur</text>
+  
+  <rect x="815" y="878" width="250" height="60" class="minio-box"/>
+  <text x="940" y="903" class="white-text" text-anchor="middle">shared-documents/</text>
+  <text x="940" y="924" class="white-small" text-anchor="middle">Partages temporaires (SEK)</text>
+
+  <!-- Sécurité -->
+  <rect x="1110" y="755" width="315" height="200" class="component"/>
+  <text x="1267" y="780" class="section-title" text-anchor="middle">Politiques de Sécurité</text>
+  
+  <rect x="1130" y="808" width="275" height="130" class="minio-box"/>
+  <text x="1267" y="830" class="white-text" text-anchor="middle">Stockage Chiffré</text>
+  <text x="1267" y="860" class="white-small" text-anchor="middle">• AES-256-GCM</text>
+  <text x="1267" y="884" class="white-small" text-anchor="middle">• IV unique par fichier</text>
+  <text x="1267" y="908" class="white-small" text-anchor="middle">• Lifecycle policies</text>
+  <text x="1267" y="932" class="white-small" text-anchor="middle">• Versioning</text>
+
+  <!-- =================== FLUX PRINCIPAUX =================== -->
+  
+  <!-- Client vers Frontend -->
+  <path d="M 750 280 L 750 300 L 390 300 L 390 320" class="arrow"/>
+  <text x="540" y="295" class="text">Interface Web</text>
+  
+  <!-- Frontend vers Backend -->
+  <path d="M 730 485 L 770 485" class="arrow"/>
+  <text x="750" y="475" class="text">API REST</text>
+  
+  <!-- Backend vers Database -->
+  <path d="M 940 650 L 940 670 L 390 670 L 390 690" class="data-arrow"/>
+  <text x="630" y="665" class="text">Métadonnées</text>
+  
+  <!-- Backend vers MinIO -->
+  <path d="M 1110 650 L 1110 690" class="data-arrow"/>
+  <text x="1140" y="675" class="text">Fichiers</text>
+
+  <!-- =================== LÉGENDE =================== -->
+  <g transform="translate(50, 1020)">
+    <text x="0" y="0" class="section-title">Flux de données</text>
+    
+    <line x1="0" y1="20" x2="60" y2="20" class="arrow"/>
+    <text x="70" y="25" class="text">Communication applicative</text>
+    
+    <line x1="300" y1="20" x2="360" y2="20" class="data-arrow"/>
+    <text x="370" y="25" class="text">Stockage persistant</text>
+  </g>
+
+  <!-- Bordure -->
+  <rect x="30" y="135" width="1440" height="945" fill="none" stroke="#1a1a2e" stroke-width="2" rx="16"/>
+</svg>
