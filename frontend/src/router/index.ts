@@ -4,6 +4,7 @@ import LoginView from '../views/authentication/LoginView.vue'
 import EmailValidationView from '../views/authentication/EmailValidationView.vue'
 import Verify2FAView from '../views/authentication/Verify2FAView.vue'
 import TestDb from '../views/testdb.vue'
+import HomeView from '../views/HomeView.vue'
 import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
 import DocumentsView from '../views/dashboard/DocumentsView.vue'
 import SharedDocumentsView from '../views/dashboard/SharedDocumentsView.vue'
@@ -44,8 +45,15 @@ const router = createRouter({
       },
       {
           path: '/',
+          name: 'home',
+          component: HomeView,
+          meta: { requiresGuest: true }
+      },
+      {
+          path: '/test-db',
           name: 'testdb',
-          component: TestDb
+          component: TestDb,
+          meta: { requiresGuest: true }
       },
       {
           path: '/dashboard',
