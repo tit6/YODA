@@ -1,4 +1,5 @@
 from contextlib import closing
+from typing import Optional
 
 import pymysql
 
@@ -34,10 +35,12 @@ def fetch_all(query, params=None):
             cursor.execute(query, params or ())
             return cursor.fetchall()
 
-def update_logs(user_id: int = 0, statut: int = 0, action: str = "") -> None:
-    """Insert Users_logs in logs table."""
-    query = "INSERT INTO logs (id_users, statut, action) VALUES (%s, %s, %s)"
-    params = (user_id, statut, action)
+def update_logs(
+    user_id, statut, action, ip_address: Optional[str] = None
+) -> None:
+    ip_value = ip_address or "0.0.0.0"
+    query = "INSERT INTO logs (id_users, statut, action, ip) VALUES (%s, %s, %s, %s)"
+    params = (user_id, statut, action, ip_value)
 
     return execute_write(query, params)
 
