@@ -2,17 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
-const router = useRouter()
-const route = useRoute()
-
 const isValidating = ref(false)
 const isValidated = ref(false)
 const hasError = ref(false)
-const errorMessage = ref('')
 const userEmail = ref('')
 
 onMounted(async () => {
-  // Récupérer l'email depuis le state du router
+  // Recuperer l'email depuis le state du router
   const emailFromState = history.state.email as string
   if (emailFromState) {
     userEmail.value = emailFromState
@@ -27,7 +23,6 @@ const resendEmail = async () => {
 
 <template>
   <div class="status-wrapper">
-          <!-- Waiting for validation -->
           <div v-if="!isValidating && !isValidated && !hasError" class="status-card">
             <div class="icon-wrapper waiting">
               <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

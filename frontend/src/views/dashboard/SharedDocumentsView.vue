@@ -246,7 +246,7 @@ const getStatusText = (status: string) => {
         </table>
       </div>
 
-      <!-- Empty state -->
+      <!-- Quand ya rien on affiche ça -->
       <div v-if="filteredDocuments.length === 0" class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-icon">
           <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 6.65685 16.3431 8 18 8Z" stroke="currentColor" stroke-width="2"/>
@@ -358,7 +358,7 @@ const getStatusText = (status: string) => {
       </div>
     </div>
 
-    <!-- Modal de lien généré -->
+    <!-- Modal de lien -->
     <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
       <div class="modal modal-small">
         <div class="modal-header">
