@@ -85,11 +85,9 @@ const handleSubmit = async () => {
     })
 
     if (success) {
-      await authStore.login({ email: email.value, password: password.value })
-
-      if (!authStore.error && authStore.isAuthenticated) {
-        await router.push({path: '/dashboard/documents'})
-      }
+      // Basculer vers l'onglet connexion après l'enregistrement
+      isLogin.value = true
+      submitted.value = false
     }
   }
 }
