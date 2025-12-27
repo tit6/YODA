@@ -77,8 +77,83 @@ export const PrivateKey = {
         // Sauvegarde dans IndexedDB
         await saveKeyToDatabase("privatekey", privateKeyJWK);
 
-        // TODO: Envoyer la clé publique au backend
+        // Stocker aussi la clé publique en PEM pour la synchroniser plus tard
+        const publicKeySpki = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+        const publicKeyPem = exportPublicKeyToPem(publicKeySpki);
+        await saveKeyToDatabase("publickey_pem", publicKeyPem);
+
         return true;
+    },
+
+    SyncPublicKeyToBackend: async (): Promise<boolean> => {
+        // Vérifier si une clé privée existe
+        const privateKeyJWK = await getKeyFromDatabase("privatekey");
+        if (!privateKeyJWK) {
+            console.log('No private key found');
+            return false;
+        }
+
+        // Récupérer la clé publique PEM stockée
+        let publicKeyPem = await getKeyFromDatabase("publickey_pem");
+
+        // Si pas de PEM stocké, le générer depuis la clé privée
+        if (!publicKeyPem) {
+            const publicKeyJWK = { ...privateKeyJWK };
+            delete publicKeyJWK.d;
+            delete publicKeyJWK.p;
+            delete publicKeyJWK.q;
+            delete publicKeyJWK.dp;
+            delete publicKeyJWK.dq;
+            delete publicKeyJWK.qi;
+            publicKeyJWK.key_ops = ["encrypt"];
+
+            const publicKeyObject = await crypto.subtle.importKey(
+                "jwk",
+                publicKeyJWK,
+                { name: "RSA-OAEP", hash: "SHA-256" },
+                true,
+                ["encrypt"]
+            );
+
+            const publicKeySpki = await crypto.subtle.exportKey("spki", publicKeyObject);
+            publicKeyPem = exportPublicKeyToPem(publicKeySpki);
+            await saveKeyToDatabase("publickey_pem", publicKeyPem);
+        }
+
+        // Envoyer au backend
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            console.log('No token found');
+            return false;
+        }
+
+        try {
+            const response = await fetch('/api/user/public-key', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ public_key: publicKeyPem })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                // Si la clé existe déjà (409), c'est OK
+                if (response.status === 409) {
+                    console.log('Public key already exists in backend');
+                    return true;
+                }
+                console.error('Failed to save public key to backend:', data);
+                return false;
+            }
+
+            console.log('Public key synced to backend');
+            return true;
+        } catch (e) {
+            console.error('Error saving public key:', e);
+            return false;
+        }
     },
 
     GetPrivateKey: async (): Promise<JsonWebKey> => {
@@ -111,29 +186,161 @@ export const PrivateKey = {
 }
 
 export const DEK = {
-    GenerateDek: async (): Promise<ArrayBuffer> => {
+    GenerateDek: async (): Promise<CryptoKey> => {
         const key = await crypto.subtle.generateKey(
             { name: "AES-GCM", length: 256 },
             true,  // extractable
             ["encrypt", "decrypt"]
         );
 
-        return await crypto.subtle.exportKey("raw", key);
+        return key;
     },
 
     /**
-     * Chiffre un fichier avec une DEK
+     * Chiffre un fichier avec une DEK et récupère la clé publique RSA du serveur
      *
-     * TODO: Implémenter le chiffrement du fichier avec la DEK générée
-     * puis chiffrer la DEK avec la clé publique du backend
-     *
-     * @param {any} file - Fichier à chiffrer
-     * @returns {Promise<void>}
+     * @param {File} file - Fichier à chiffrer
+     * @returns {Promise<EncryptedFileResult>}
      */
-    EncryptFile: async (file: any): Promise<void> => {
-        // À implémenter
-        return;
+    EncryptFile: async (file: File): Promise<{
+        encryptedData: ArrayBuffer,
+        dekEncrypted: string,
+        iv: string,
+        sha256: string
+    }> => {
+        // 1. Lire le fichier
+        const fileBuffer = await file.arrayBuffer();
+
+        // 2. Calculer le SHA-256 du fichier original
+        const sha256Hash = await crypto.subtle.digest("SHA-256", fileBuffer);
+        const sha256 = arrayBufferToBase64(sha256Hash);
+
+        // 3. Générer une DEK (Data Encryption Key)
+        const dek = await DEK.GenerateDek();
+
+        // 4. Générer un IV aléatoire
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+
+        // 5. Chiffrer le fichier avec AES-GCM
+        const encryptedData = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            dek,
+            fileBuffer
+        );
+
+        // 6. Récupérer la clé publique RSA de l'utilisateur depuis le backend
+        const publicKeyPem = await fetchPublicKeyFromBackend();
+
+        // 7. Importer la clé publique
+        const publicKey = await importPublicKeyFromPem(publicKeyPem);
+
+        // 8. Exporter la DEK en raw
+        const dekRaw = await crypto.subtle.exportKey("raw", dek);
+
+        // 9. Chiffrer la DEK avec la clé publique RSA
+        const dekEncryptedBuffer = await crypto.subtle.encrypt(
+            { name: "RSA-OAEP" },
+            publicKey,
+            dekRaw
+        );
+
+        return {
+            encryptedData,
+            dekEncrypted: arrayBufferToBase64(dekEncryptedBuffer),
+            iv: arrayBufferToBase64(iv),
+            sha256
+        };
+    },
+
+    /**
+     * Déchiffre un fichier avec la clé privée locale
+     *
+     * @param {ArrayBuffer} encryptedData - Données chiffrées
+     * @param {string} dekEncrypted - DEK chiffrée en base64
+     * @param {string} ivBase64 - IV en base64
+     * @returns {Promise<ArrayBuffer>}
+     */
+    DecryptFile: async (
+        encryptedData: ArrayBuffer,
+        dekEncrypted: string,
+        ivBase64: string
+    ): Promise<ArrayBuffer> => {
+        // 1. Déchiffrer la DEK avec la clé privée RSA locale
+        const dekRaw = await PrivateKey.DecryptDek(dekEncrypted);
+
+        // 2. Importer la DEK
+        const dek = await crypto.subtle.importKey(
+            "raw",
+            dekRaw,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["decrypt"]
+        );
+
+        // 3. Convertir l'IV depuis base64
+        const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+
+        // 4. Déchiffrer le fichier
+        const decryptedData = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            dek,
+            encryptedData
+        );
+
+        return decryptedData;
     }
+}
+
+/**
+ * Récupère la clé publique RSA de l'utilisateur depuis le backend
+ */
+async function fetchPublicKeyFromBackend(): Promise<string> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch('/api/user/public-key', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error('Impossible de récupérer la clé publique');
+    }
+
+    const data = await response.json();
+    return data.data.public_key;
+}
+
+/**
+ * Importe une clé publique RSA depuis le format PEM
+ */
+async function importPublicKeyFromPem(pem: string): Promise<CryptoKey> {
+    // Retirer les headers/footers PEM
+    const pemContents = pem
+        .replace(/-----BEGIN PUBLIC KEY-----/, '')
+        .replace(/-----END PUBLIC KEY-----/, '')
+        .replace(/\s/g, '');
+
+    // Décoder le base64
+    const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+
+    // Importer la clé
+    return await crypto.subtle.importKey(
+        "spki",
+        binaryDer.buffer,
+        { name: "RSA-OAEP", hash: "SHA-256" },
+        false,
+        ["encrypt"]
+    );
+}
+
+/**
+ * Exporte une clé publique RSA au format PEM
+ */
+function exportPublicKeyToPem(publicKeySpki: ArrayBuffer): string {
+    const b64 = arrayBufferToBase64(publicKeySpki);
+    // Formater en PEM avec retours à la ligne tous les 64 caractères
+    const pem = b64.match(/.{1,64}/g)?.join('\n') || b64;
+    return `-----BEGIN PUBLIC KEY-----\n${pem}\n-----END PUBLIC KEY-----`;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {

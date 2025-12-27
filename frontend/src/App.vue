@@ -4,6 +4,9 @@
 </template>
 
 <style>
+@import './views/assets/variable.css';
+@import './views/assets/component.css';
+
 * {
   margin: 0;
   padding: 0;
@@ -11,7 +14,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-family: var(--font-family);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 </style>

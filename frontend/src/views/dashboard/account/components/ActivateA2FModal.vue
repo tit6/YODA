@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import IconCopy from '@/views/assets/icons/IconCopy.vue'
 
 const props = defineProps<{
   show: boolean
@@ -83,10 +84,7 @@ function copySecretKey() {
         <div class="key-container">
           <code>{{ secretKey }}</code>
           <button class="copy-btn" title="Copier" @click="copySecretKey">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 9H11C9.89543 9 9 9.89543 9 11V20C9 21.1046 9.89543 22 11 22H20C21.1046 22 22 21.1046 22 20V11C22 9.89543 21.1046 9 20 9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <IconCopy />
           </button>
         </div>
       </div>
@@ -116,188 +114,106 @@ function copySecretKey() {
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  max-width: 500px;
-  width: 90%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .modal-a2f {
   max-width: 600px;
-}
-
-.modal-content h3 {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin: 0;
-}
-
-.modal-content p {
-  font-size: 15px;
-  color: var(--primary-hover-color);
-  margin: 0;
 }
 
 .qr-container {
   display: flex;
   justify-content: center;
-  padding: 20px;
-  background-color: #fafafa;
-  border-radius: 8px;
+  padding: var(--space-xl);
+  background-color: var(--bg-input);
+  border-radius: var(--border-radius-md);
 }
 
 .qr-code {
   width: 200px;
   height: 200px;
-  border: 2px solid var(--border-input-color);
-  border-radius: 8px;
-  background-color: white;
-  padding: 10px;
+  border: var(--border-width) solid var(--border-input-color);
+  border-radius: var(--border-radius-md);
+  background-color: var(--bg-card);
+  padding: var(--space-sm);
 }
 
 .secret-key {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .secret-key label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary-hover-color);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
 }
 
 .key-container {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background-color: #fafafa;
-  border: 2px solid var(--border-input-color);
-  border-radius: 8px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--bg-input);
+  border: var(--border-width) solid var(--border-input-color);
+  border-radius: var(--border-radius-md);
 }
 
 .key-container code {
   flex: 1;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  color: var(--primary-color);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
   letter-spacing: 2px;
 }
 
 .copy-btn {
-  padding: 6px;
+  padding: var(--space-sm);
   background-color: transparent;
   border: none;
   cursor: pointer;
-  color: var(--primary-color);
-  border-radius: 4px;
-  transition: all 0.3s ease;
+  color: var(--text-primary);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.copy-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .copy-btn:hover {
-  background-color: var(--border-input-color);
+  background-color: var(--border-color);
 }
 
 .verification-code {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .verification-code label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary-hover-color);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
 }
 
 .verification-code input {
-  padding: 12px 16px;
-  border: 2px solid var(--border-input-color);
-  border-radius: 8px;
-  font-size: 18px;
+  padding: var(--space-md) var(--space-lg);
+  border: var(--border-width) solid var(--border-input-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-xl);
   text-align: center;
   letter-spacing: 8px;
-  font-family: 'Courier New', monospace;
-  transition: all 0.3s ease;
-  background-color: #fafafa;
+  font-family: var(--font-mono);
+  transition: all var(--transition-base);
+  background-color: var(--bg-input);
 }
 
 .verification-code input:focus {
   outline: none;
   border-color: var(--primary-color);
   background-color: var(--secondary-color);
-}
-
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.cancel-btn, .confirm-btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn {
-  background-color: #f5f5f5;
-  color: var(--primary-color);
-}
-
-.cancel-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.confirm-btn {
-  background-color: var(--primary-color);
-  color: var(--secondary-color);
-}
-
-.confirm-btn:hover:not(:disabled) {
-  background-color: var(--primary-hover-color);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.cancel-btn:disabled,
-.confirm-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.error-message {
-  color: var(--red-warning);
-  font-size: 14px;
-  margin: 0;
 }
 </style>

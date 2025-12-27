@@ -128,6 +128,14 @@ export const useAuthStore = defineStore('auth', {
           }
 
           this.isAuthenticated = true
+
+          // Synchroniser la clé publique avec le backend après le login
+          try {
+            await PrivateKey.SyncPublicKeyToBackend()
+          } catch (e) {
+            console.error('Failed to sync public key:', e)
+          }
+
           return
         }
 

@@ -11,8 +11,9 @@ CREATE TABLE `users` (
   `prenom` varchar(45) NOT NULL,
   `email` varchar(45) NOT NULL,
   `mdp` varchar(255) NOT NULL,
-  `secret_a2f` varchar(128) DEFAULT NULL, 
+  `secret_a2f` varchar(128) DEFAULT NULL,
   `statue_a2f` INT DEFAULT '0' NOT NULL,
+  `public_key` TEXT DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `secret_a2f_UNIQUE` (`secret_a2f`)

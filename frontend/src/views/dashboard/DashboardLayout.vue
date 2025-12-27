@@ -2,6 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import IconDocument from '@/views/assets/icons/IconDocument.vue'
+import IconShare from '@/views/assets/icons/IconShare.vue'
+import IconSecurity from '@/views/assets/icons/IconSecurity.vue'
+import IconChevronLeft from '@/views/assets/icons/IconChevronLeft.vue'
+import IconLogout from '@/views/assets/icons/IconLogout.vue'
+import IconChevronDown from '@/views/assets/icons/IconChevronDown.vue'
 
 const authStore = useAuthStore()
 
@@ -72,15 +78,7 @@ onMounted(() => {
           class="nav-item"
           :class="{ active: isActive('/dashboard/documents') }"
         >
-          <svg class="nav-icon" viewBox="0 0 24 24">
-            <path
-              d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543
-                 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071
-                 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17
-                 21Z"
-              fill="currentColor"
-            />
-          </svg>
+          <IconDocument class="nav-icon" />
           <span class="nav-label" v-if="!isSidebarCollapsed">Mes Documents</span>
         </router-link>
 
@@ -90,20 +88,7 @@ onMounted(() => {
           class="nav-item"
           :class="{ active: isActive('/dashboard/shared') }"
         >
-          <svg class="nav-icon" viewBox="0 0 24 24">
-            <path
-              d="M8.68387 13.3419C7.26266 12.6212 6 11.0738 6 9C6 6.23858 8.23858 4 11
-                4C13.7614 4 16 6.23858 16 9C16 11.0738 14.7373 12.6212 13.3161
-                13.3419C16.124 14.0988 18 16.2468 18 19H4C4 16.2468 5.87597 14.0988
-                8.68387 13.3419Z M14 9C14 7.34315 12.6569 6 11 6C9.34315 6 8 7.34315 8
-                9C8 10.6569 9.34315 12 11 12C12.6569 12 14 10.6569 14 9Z M18 9C18
-                8.44772 18.4477 8 19 8C19.5523 8 20 8.44772 20 9V11H22C22.5523 11 23
-                11.4477 23 12C23 12.5523 22.5523 13 22 13H20V15C20 15.5523 19.5523 16
-                19 16C18.4477 16 18 15.5523 18 15V13H16C15.4477 13 15 12.5523 15
-                12C15 11.4477 15.4477 11 16 11H18V9Z"
-              fill="currentColor"
-            />
-          </svg>
+          <IconShare class="nav-icon" />
           <span class="nav-label" v-if="!isSidebarCollapsed">Partages</span>
         </router-link>
 
@@ -113,14 +98,7 @@ onMounted(() => {
           class="nav-item"
           :class="{ active: isActive('/dashboard/account') }"
         >
-          <svg class="nav-icon" viewBox="0 0 24 24">
-            <path
-              d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21
-                11V5L12 1ZM12 11.99H19C18.47 16.11 15.72 19.78 12 20.93V12H5V6.3L12
-                3.19V11.99Z"
-              fill="currentColor"
-            />
-          </svg>
+          <IconSecurity class="nav-icon" />
           <span class="nav-label" v-if="!isSidebarCollapsed">Mon compte</span>
         </router-link>
 
@@ -128,9 +106,7 @@ onMounted(() => {
 
       <div class="sidebar-footer">
         <button @click="toggleSidebar" class="collapse-btn">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z" fill="currentColor"/>
-          </svg>
+          <IconChevronLeft />
         </button>
       </div>
     </aside>
@@ -153,9 +129,7 @@ onMounted(() => {
               <span class="user-name">{{ userName }}</span>
               <span class="user-role">Utilisateur</span>
             </div>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7 10L12 15L17 10H7Z" fill="currentColor"/>
-            </svg>
+            <IconChevronDown class="chevron" />
 
             <!-- Dropdown -->
             <div class="user-dropdown" v-if="showUserMenu">
@@ -165,9 +139,7 @@ onMounted(() => {
               </div>
               <div class="dropdown-divider"></div>
               <button @click="logout" class="dropdown-item danger">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.59L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
-                </svg>
+                <IconLogout />
                 Déconnexion
               </button>
             </div>
@@ -193,30 +165,30 @@ onMounted(() => {
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
 }
 
 /* Sidebar */
 .sidebar {
-  width: 260px;
-  background-color: var(--primary-color);
+  width: var(--sidebar-width);
+  background-color: var(--sidebar-bg);
   color: var(--secondary-color);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width var(--transition-base);
   position: fixed;
   height: 100vh;
   left: 0;
   top: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .sidebar.collapsed {
-  width: 80px;
+  width: var(--sidebar-collapsed-width);
 }
 
 .sidebar-header {
-  padding: 24px;
+  padding: var(--space-xl);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -227,30 +199,30 @@ onMounted(() => {
 }
 
 .logo-text {
-  font-size: 28px;
-  font-weight: 900;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-extrabold);
   letter-spacing: 4px;
 }
 
 .logo-icon {
-  font-size: 28px;
-  font-weight: 900;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-extrabold);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 24px 0;
+  padding: var(--space-xl) 0;
   overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 14px 24px;
+  gap: var(--space-lg);
+  padding: 14px var(--space-xl);
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   position: relative;
 }
 
@@ -281,8 +253,8 @@ onMounted(() => {
 }
 
 .nav-label {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
 
@@ -292,19 +264,19 @@ onMounted(() => {
 }
 
 .sidebar-footer {
-  padding: 16px;
+  padding: var(--space-lg);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .collapse-btn {
   width: 100%;
-  padding: 12px;
+  padding: var(--space-md);
   background-color: rgba(255, 255, 255, 0.05);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   color: var(--secondary-color);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -317,7 +289,7 @@ onMounted(() => {
 .collapse-btn svg {
   width: 20px;
   height: 20px;
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-base);
 }
 
 .sidebar.collapsed .collapse-btn svg {
@@ -327,66 +299,66 @@ onMounted(() => {
 /* Main Container */
 .main-container {
   flex: 1;
-  margin-left: 260px;
+  margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  transition: margin-left 0.3s ease;
+  transition: margin-left var(--transition-base);
 }
 
 .sidebar.collapsed ~ .main-container {
-  margin-left: 80px;
+  margin-left: var(--sidebar-collapsed-width);
 }
 
 /* Top Header */
 .top-header {
-  height: 70px;
+  height: var(--header-height);
   background-color: var(--secondary-color);
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: var(--border-width) solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 var(--space-xxl);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-dropdown);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--space-xl);
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--primary-color);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .icon-btn {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   background-color: transparent;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-active-color);
-  transition: all 0.3s ease;
+  color: var(--text-muted);
+  transition: all var(--transition-base);
   position: relative;
 }
 
 .icon-btn:hover {
-  background-color: #f5f5f5;
-  color: var(--primary-color);
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .icon-btn svg {
@@ -396,12 +368,12 @@ onMounted(() => {
 
 .badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background-color: var(--red-warning);
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  background-color: var(--color-danger);
+  color: var(--secondary-color);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
   padding: 2px 6px;
   border-radius: 10px;
   min-width: 18px;
@@ -412,16 +384,16 @@ onMounted(() => {
 .user-menu {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-md);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   position: relative;
 }
 
 .user-menu:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-hover);
 }
 
 .user-avatar {
@@ -433,8 +405,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
 }
 
 .user-info {
@@ -444,100 +416,100 @@ onMounted(() => {
 }
 
 .user-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary-color);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 .user-role {
-  font-size: 12px;
-  color: var(--primary-active-color);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
 }
 
 .chevron {
   width: 16px;
   height: 16px;
-  color: var(--primary-active-color);
+  color: var(--text-muted);
 }
 
 .user-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--space-sm));
   right: 0;
   width: 280px;
-  background-color: var(--secondary-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .dropdown-header {
-  padding: 16px;
-  background-color: #f8f9fa;
+  padding: var(--space-lg);
+  background-color: var(--bg-input-disabled);
 }
 
 .dropdown-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--primary-color);
-  margin-bottom: 4px;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
 }
 
 .dropdown-email {
-  font-size: 13px;
-  color: var(--primary-active-color);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .dropdown-divider {
   height: 1px;
-  background-color: #e5e5e5;
+  background-color: var(--border-color);
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  color: var(--primary-color);
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  color: var(--text-primary);
   text-decoration: none;
   background: none;
   border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
+  transition: all var(--transition-base);
+  font-size: var(--font-size-base);
 }
 
 .dropdown-item:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-input-disabled);
 }
 
 .dropdown-item svg {
   width: 18px;
   height: 18px;
-  color: var(--primary-active-color);
+  color: var(--text-muted);
 }
 
 .dropdown-item.danger {
-  color: var(--red-warning);
+  color: var(--color-danger);
 }
 
 .dropdown-item.danger svg {
-  color: var(--red-warning);
+  color: var(--color-danger);
 }
 
 /* Main Content */
 .main-content {
   flex: 1;
-  padding: 32px;
+  padding: var(--space-xxl);
   overflow-y: auto;
 }
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 80px;
+    width: var(--sidebar-collapsed-width);
   }
 
   .sidebar .nav-label,
@@ -546,7 +518,7 @@ onMounted(() => {
   }
 
   .main-container {
-    margin-left: 80px;
+    margin-left: var(--sidebar-collapsed-width);
   }
 }
 </style>
