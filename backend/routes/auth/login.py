@@ -4,29 +4,26 @@ from bcrypt import checkpw
 from module.db import fetch_one
 from module.jwt_ag import encode_jwt
 from module.api_retour import api_response
-from routes.a2f import check_a2f_status
+from routes.auth.a2f import check_a2f_status
 
 login_bp = Blueprint("login", __name__)
 
 
 @login_bp.route("/login", methods=["POST"])
 def login():
-    print("Login route accessed")
     email = request.json.get("email")
     password = request.json.get("password")
-
-    print(f"Logging in user: {email}, {password}")
 
     try :
         mdp = fetch_one("SELECT id, mdp FROM users WHERE email = %s", (email,))
         if mdp is None:
-            return jsonify({"status": "error"}), 200
+            return jsonify({"status": "error"}), 403
         
 
         motdepasse_bytes = password.encode("utf-8")
         hash_bytes = mdp['mdp'].encode("utf-8")
         if not checkpw(motdepasse_bytes, hash_bytes):
-            return jsonify({"status": "error"}), 200
+            return jsonify({"status": "error"}), 403
         
         else :
 

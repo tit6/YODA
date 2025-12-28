@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { jwtDecode } from "jwt-decode";
+import { PrivateKey } from "@/stores/crypto.ts";
+
 
 type Credentials = { email: string; password: string }
 type SessionJson = {
@@ -42,6 +44,43 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    async register(data: { name: string; prenom: string; email: string; password: string; second_password: string }) {
+      try {
+        this.error = ''
+
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(data),
+          credentials: 'include',
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json()
+          this.error = errorData.error || 'Erreur lors de l\'enregistrement.'
+          return false
+        }
+
+        const responseData = await res.json()
+
+        if (responseData.status === 'error') {
+          this.error = responseData.message || 'Erreur lors de l\'enregistrement.'
+          return false
+        }
+
+        await PrivateKey.GeneratePrivateKey();
+
+        return true
+
+      } catch (err) {
+        this.error = String(err)
+        return false
+      }
+    },
+
     async login(credentials: Credentials) {
       try {
         this.error = ''
@@ -89,6 +128,14 @@ export const useAuthStore = defineStore('auth', {
           }
 
           this.isAuthenticated = true
+
+          // Synchroniser la clé publique avec le backend après le login
+          try {
+            await PrivateKey.SyncPublicKeyToBackend()
+          } catch (e) {
+            console.error('Failed to sync public key:', e)
+          }
+
           return
         }
 
@@ -116,10 +163,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const decoded = jwtDecode<TokenJWT>(token)
 
-        // Vérification expiration
         const currentTime = Math.floor(Date.now() / 1000)
         if (decoded.exp < currentTime) {
-          console.warn("Token expiré")
           this.logout()
           return false
         }
@@ -127,7 +172,6 @@ export const useAuthStore = defineStore('auth', {
         return true
 
       } catch (err) {
-        console.error("JWT invalide:", err)
         this.logout()
         return false
       }
