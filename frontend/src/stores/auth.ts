@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { jwtDecode } from "jwt-decode";
+import { PrivateKey } from "@/stores/crypto.ts";
+
 
 type Credentials = { email: string; password: string }
 type SessionJson = {
@@ -69,10 +71,12 @@ export const useAuthStore = defineStore('auth', {
           return false
         }
 
+        await PrivateKey.GeneratePrivateKey();
+
         return true
 
       } catch (err) {
-        this.error = 'Erreur de connexion au serveur'
+        this.error = String(err)
         return false
       }
     },
@@ -124,6 +128,14 @@ export const useAuthStore = defineStore('auth', {
           }
 
           this.isAuthenticated = true
+
+          // Synchroniser la clé publique avec le backend après le login
+          try {
+            await PrivateKey.SyncPublicKeyToBackend()
+          } catch (e) {
+            console.error('Failed to sync public key:', e)
+          }
+
           return
         }
 
@@ -151,10 +163,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const decoded = jwtDecode<TokenJWT>(token)
 
-        // Vérification expiration
         const currentTime = Math.floor(Date.now() / 1000)
         if (decoded.exp < currentTime) {
-          console.warn("Token expiré")
           this.logout()
           return false
         }
@@ -162,7 +172,6 @@ export const useAuthStore = defineStore('auth', {
         return true
 
       } catch (err) {
-        console.error("JWT invalide:", err)
         this.logout()
         return false
       }

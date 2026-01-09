@@ -3,11 +3,9 @@ import AuthProcessView from '../views/authentication/AuthProcessView.vue'
 import LoginView from '../views/authentication/LoginView.vue'
 import EmailValidationView from '../views/authentication/EmailValidationView.vue'
 import Verify2FAView from '../views/authentication/Verify2FAView.vue'
-import TestDb from '../views/testdb.vue'
-import HomeView from '../views/HomeView.vue'
 import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
-import DocumentsView from '../views/dashboard/DocumentsView.vue'
-import SharedDocumentsView from '../views/dashboard/SharedDocumentsView.vue'
+import DocumentsView from '../views/dashboard/document/DocumentsView.vue'
+import SharedDocumentsView from '../views/dashboard/shared/SharedDocumentsView.vue'
 import AccountView from '../views/dashboard/account/AccountView.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -45,15 +43,8 @@ const router = createRouter({
       },
       {
           path: '/',
-          name: 'home',
-          component: HomeView,
-          meta: { requiresGuest: true }
-      },
-      {
-          path: '/test-db',
-          name: 'testdb',
-          component: TestDb,
-          meta: { requiresGuest: true }
+          name: 'dashboard',
+          component: DashboardLayout
       },
       {
           path: '/dashboard',
