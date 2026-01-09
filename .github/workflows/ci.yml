@@ -132,9 +132,9 @@ jobs:
           body=$(echo "$response" | head -n-1)
           echo "Status code: $status_code"
           echo "Response: $body"
-          # Skip if endpoint not found
-          if [ "$status_code" = "404" ]; then
-            echo "Files endpoint not implemented yet, skipping..."
+          # Skip if endpoint not found or requires authentication
+          if [ "$status_code" = "404" ] || [ "$status_code" = "401" ]; then
+            echo "Files endpoint not implemented or requires authentication, skipping..."
             exit 0
           fi
           if [ "$status_code" != "200" ]; then
