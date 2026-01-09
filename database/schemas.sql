@@ -95,5 +95,5 @@ CREATE TABLE `shared_files` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- données de test
-INSERT INTO users (nom, prenom, email, mdp, secret_a2f, statue_a2f, public_key)
-VALUES ('admin', 'prenom', 'test@gmail.com', '$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y', NULL, 0, NULL);
+INSERT INTO users VALUES (1,'admin', 'prenom','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0);
+
