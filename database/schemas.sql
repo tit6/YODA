@@ -26,6 +26,7 @@ CREATE TABLE `logs` (
   `statut` int NOT NULL,
   `action` varchar(100) NOT NULL,
   `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip` VARCHAR(100) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   KEY `id_users_idx` (`id_users`),
