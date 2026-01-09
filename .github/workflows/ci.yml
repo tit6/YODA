@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ "main", "docs-archi-yoda" ]
+    branches: [ "main", "docs-archi-yoda", "ci_cd", "development" ]
   pull_request:
     branches: [ "main" ]
 
