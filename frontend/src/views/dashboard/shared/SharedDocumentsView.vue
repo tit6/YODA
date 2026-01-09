@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import ShowCreateModal from './components/showCreateModal.vue'
+import ShowLinkModal from './components/showLinkModal.vue'
 
 interface SharedDocument {
   id: number
@@ -16,25 +18,51 @@ interface SharedDocument {
 }
 
 const searchQuery = ref('')
-const showCreateModal = ref(false)
-const showLinkModal = ref(false)
-const selectedDocument = ref<SharedDocument | null>(null)
+const showCreateModalVisible = ref(false)
+const showLinkModalVisible = ref(false)
 const generatedLink = ref('')
-
-// Form pour créer un nouveau partage
-const shareForm = ref({
-  documentName: '',
-  recipient: '',
-  duration: '48',
-  accessType: 'read' as 'read' | 'download',
-  requirePassword: true,
-  password: '',
-  maxAccess: null as number | null
-})
+const generatedLinkHasPassword = ref(false)
 
 // Données de démonstration
 const sharedDocuments = ref<SharedDocument[]>([
 ])
+
+const createShare = (formData: {
+  documentName: string
+  recipient: string
+  duration: string
+  accessType: 'read' | 'download'
+  requirePassword: boolean
+  password: string
+  maxAccess: number | null
+}) => {
+  // Génération du lien de partage
+  const linkId = Math.random().toString(36).substring(2, 10)
+  generatedLink.value = `https://yoda-vault.com/s/${linkId}`
+  generatedLinkHasPassword.value = formData.requirePassword
+
+  // Ajout du nouveau partage
+  const expiresAt = new Date()
+  expiresAt.setHours(expiresAt.getHours() + parseInt(formData.duration))
+
+  sharedDocuments.value.unshift({
+    id: Date.now(),
+    documentName: formData.documentName,
+    recipient: formData.recipient,
+    createdAt: new Date().toLocaleString('fr-FR'),
+    expiresAt: expiresAt.toLocaleString('fr-FR'),
+    accessType: formData.accessType,
+    hasPassword: formData.requirePassword,
+    link: generatedLink.value,
+    accessCount: 0,
+    maxAccess: formData.maxAccess || undefined,
+    status: 'active'
+  })
+
+  // Fermer modal de création et ouvrir modal de lien
+  showCreateModalVisible.value = false
+  showLinkModalVisible.value = true
+}
 
 const filteredDocuments = computed(() => {
   if (!searchQuery.value) return sharedDocuments.value
@@ -45,57 +73,6 @@ const filteredDocuments = computed(() => {
     doc.recipient.toLowerCase().includes(query)
   )
 })
-
-const activeShares = computed(() =>
-  sharedDocuments.value.filter(doc => doc.status === 'active').length
-)
-
-const expiredShares = computed(() =>
-  sharedDocuments.value.filter(doc => doc.status === 'expired').length
-)
-
-const createShare = () => {
-  // Génération du lien de partage
-  const linkId = Math.random().toString(36).substring(2, 10)
-  generatedLink.value = `https://yoda-vault.com/s/${linkId}`
-
-  // Ajout du nouveau partage
-  const expiresAt = new Date()
-  expiresAt.setHours(expiresAt.getHours() + parseInt(shareForm.value.duration))
-
-  sharedDocuments.value.unshift({
-    id: Date.now(),
-    documentName: shareForm.value.documentName,
-    recipient: shareForm.value.recipient,
-    createdAt: new Date().toLocaleString('fr-FR'),
-    expiresAt: expiresAt.toLocaleString('fr-FR'),
-    accessType: shareForm.value.accessType,
-    hasPassword: shareForm.value.requirePassword,
-    link: generatedLink.value,
-    accessCount: 0,
-    maxAccess: shareForm.value.maxAccess || undefined,
-    status: 'active'
-  })
-
-  showCreateModal.value = false
-  showLinkModal.value = true
-
-  // Reset du formulaire
-  shareForm.value = {
-    documentName: '',
-    recipient: '',
-    duration: '48',
-    accessType: 'read',
-    requirePassword: true,
-    password: '',
-    maxAccess: null
-  }
-}
-
-const copyLink = () => {
-  navigator.clipboard.writeText(generatedLink.value)
-  alert('Lien copié dans le presse-papiers !')
-}
 
 const revokeShare = (shareId: number) => {
   const share = sharedDocuments.value.find(s => s.id === shareId)
@@ -110,10 +87,6 @@ const deleteShare = (shareId: number) => {
     const index = sharedDocuments.value.findIndex(s => s.id === shareId)
     sharedDocuments.value.splice(index, 1)
   }
-}
-
-const viewDetails = (share: SharedDocument) => {
-  selectedDocument.value = share
 }
 
 const getStatusColor = (status: string) => {
@@ -141,7 +114,7 @@ const getStatusText = (status: string) => {
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <button @click="showCreateModal = true" class="btn-primary">
+        <button @click="showCreateModalVisible = true" class="btn-primary">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 6.65685 16.3431 8 18 8Z" stroke="currentColor" stroke-width="2"/>
             <path d="M6 15C7.65685 15 9 13.6569 9 12C9 10.3431 7.65685 9 6 9C4.34315 9 3 10.3431 3 12C3 13.6569 4.34315 15 6 15Z" stroke="currentColor" stroke-width="2"/>
@@ -224,7 +197,7 @@ const getStatusText = (status: string) => {
               </td>
               <td>
                 <div class="actions-cell">
-                  <button @click="copyLink" class="action-btn" title="Copier le lien">
+                  <button @click="generatedLink = share.link; showLinkModalVisible = true; generatedLinkHasPassword = share.hasPassword" class="action-btn" title="Copier le lien">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
                     </svg>
@@ -258,153 +231,19 @@ const getStatusText = (status: string) => {
       </div>
     </div>
 
-    <!-- Modal de création de partage -->
-    <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h2>Créer un nouveau partage</h2>
-          <button @click="showCreateModal = false" class="close-btn">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
+    <!-- Modals -->
+    <ShowCreateModal
+      :show="showCreateModalVisible"
+      @close="showCreateModalVisible = false"
+      @create="createShare"
+    />
 
-        <form @submit.prevent="createShare" class="modal-body">
-          <div class="input-group">
-            <label for="document">Document à partager</label>
-            <select id="document" v-model="shareForm.documentName" required>
-              <option value="">Sélectionner un document...</option>
-              <option value="Bilan 2024 - Confidentiel.pdf">Bilan 2024 - Confidentiel.pdf</option>
-              <option value="Contrat Commercial 2024.pdf">Contrat Commercial 2024.pdf</option>
-              <option value="Facture_2024_001.pdf">Facture_2024_001.pdf</option>
-            </select>
-          </div>
-
-          <div class="input-group">
-            <label for="recipient">Email du destinataire</label>
-            <input
-              id="recipient"
-              v-model="shareForm.recipient"
-              type="email"
-              placeholder="destinataire@exemple.com"
-              required
-            />
-          </div>
-
-          <div class="input-row">
-            <div class="input-group">
-              <label for="duration">Durée de validité</label>
-              <select id="duration" v-model="shareForm.duration">
-                <option value="1">1 heure</option>
-                <option value="6">6 heures</option>
-                <option value="24">24 heures</option>
-                <option value="48">48 heures</option>
-                <option value="168">7 jours</option>
-                <option value="720">30 jours</option>
-              </select>
-            </div>
-
-            <div class="input-group">
-              <label for="access-type">Type d'accès</label>
-              <select id="access-type" v-model="shareForm.accessType">
-                <option value="read">Lecture seule</option>
-                <option value="download">Téléchargement autorisé</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="input-group">
-            <label for="max-access">Nombre d'accès maximum (optionnel)</label>
-            <input
-              id="max-access"
-              v-model.number="shareForm.maxAccess"
-              type="number"
-              placeholder="Illimité"
-              min="1"
-            />
-          </div>
-
-          <div class="checkbox-group">
-            <input
-              id="require-password"
-              v-model="shareForm.requirePassword"
-              type="checkbox"
-            />
-            <label for="require-password">Protéger par mot de passe</label>
-          </div>
-
-          <div v-if="shareForm.requirePassword" class="input-group">
-            <label for="password">Mot de passe</label>
-            <input
-              id="password"
-              v-model="shareForm.password"
-              type="text"
-              placeholder="Entrez un mot de passe"
-              :required="shareForm.requirePassword"
-            />
-            <p class="input-hint">Ce mot de passe devra être communiqué au destinataire séparément.</p>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="showCreateModal = false" class="btn-secondary">
-              Annuler
-            </button>
-            <button type="submit" class="btn-primary">
-              Créer le partage
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal de lien -->
-    <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
-      <div class="modal modal-small">
-        <div class="modal-header">
-          <h2>Partage créé avec succès</h2>
-          <button @click="showLinkModal = false" class="close-btn">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="modal-body">
-          <div class="success-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="currentColor"/>
-              <path d="M16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z" fill="currentColor"/>
-            </svg>
-          </div>
-
-          <p class="success-message">Votre lien de partage a été créé. Copiez-le et envoyez-le au destinataire.</p>
-
-          <div class="link-box">
-            <input type="text" :value="generatedLink" readonly class="link-input" />
-            <button @click="copyLink" class="copy-btn">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
-              </svg>
-              Copier
-            </button>
-          </div>
-
-          <div class="info-box" v-if="shareForm.requirePassword">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/>
-            </svg>
-            <p>N'oubliez pas de communiquer le mot de passe séparément au destinataire pour plus de sécurité.</p>
-          </div>
-
-          <div class="modal-actions">
-            <button @click="showLinkModal = false" class="btn-primary full-width">
-              Fermer
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ShowLinkModal
+      :show="showLinkModalVisible"
+      :link="generatedLink"
+      :has-password="generatedLinkHasPassword"
+      @close="showLinkModalVisible = false"
+    />
   </div>
 </template>
 
@@ -679,281 +518,8 @@ const getStatusText = (status: string) => {
   color: var(--primary-active-color);
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-.modal-small {
-  max-width: 500px;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px;
-  border-bottom: 2px solid var(--border-input-color);
-}
-
-.modal-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin: 0;
-}
-
-.close-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--primary-active-color);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background-color: #f0f0f0;
-  color: var(--primary-color);
-}
-
-.close-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-.modal-body {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.input-group label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary-hover-color);
-}
-
-.input-group input,
-.input-group select {
-  padding: 12px 16px;
-  border: 2px solid var(--border-input-color);
-  border-radius: 8px;
-  font-size: 15px;
-  transition: all 0.3s ease;
-  background-color: #fafafa;
-}
-
-.input-group input:focus,
-.input-group select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  background-color: var(--secondary-color);
-}
-
-.input-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.input-hint {
-  font-size: 12px;
-  color: var(--primary-active-color);
-  margin: 0;
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.checkbox-group input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.checkbox-group label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--primary-color);
-  cursor: pointer;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.btn-secondary {
-  padding: 12px 24px;
-  background-color: transparent;
-  color: var(--primary-color);
-  border: 2px solid var(--border-input-color);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background-color: #f0f0f0;
-  border-color: var(--primary-active-color);
-}
-
-/* Success Modal */
-.success-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 20px auto;
-}
-
-.success-icon svg {
-  width: 80px;
-  height: 80px;
-  color: #00c851;
-}
-
-.success-message {
-  text-align: center;
-  font-size: 15px;
-  color: var(--primary-hover-color);
-  margin: 0 0 24px 0;
-  line-height: 1.5;
-}
-
-.link-box {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 2px solid var(--border-input-color);
-}
-
-.link-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  background: white;
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--primary-color);
-  font-family: monospace;
-}
-
-.copy-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background-color: var(--primary-color);
-  color: var(--secondary-color);
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.copy-btn:hover {
-  background-color: var(--primary-hover-color);
-}
-
-.copy-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.info-box {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  background-color: #e3f2fd;
-  border-radius: 8px;
-  border-left: 4px solid #1976d2;
-}
-
-.info-box svg {
-  width: 20px;
-  height: 20px;
-  color: #1976d2;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.info-box p {
-  font-size: 13px;
-  color: #1565c0;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.full-width {
-  width: 100%;
-  justify-content: center;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-  .input-row {
-    grid-template-columns: 1fr;
-  }
-
-  .modal {
-    max-width: 100%;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-    justify-content: center;
-  }
-
   .shares-table {
     font-size: 12px;
   }

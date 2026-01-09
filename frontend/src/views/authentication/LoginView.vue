@@ -194,17 +194,17 @@ const handleSubmit = async () => {
 <style scoped>
 .input-row {
   display: flex;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .tabs {
   width: 100%;
   align-items: center;
   display: flex;
-  border-bottom: 2px solid #e5e5e5;
+  border-bottom: var(--border-width) solid var(--border-color);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-sticky);
 }
 
 .form-wrapper {
@@ -221,52 +221,52 @@ const handleSubmit = async () => {
 .tab {
   flex: 1;
   width: 10px;
-  padding: 12px 0;
+  padding: var(--space-md) 0;
   background: none;
   border: none;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--primary-active-color);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   position: relative;
 }
 
 .tab.active {
-  color: var(--primary-color);
+  color: var(--text-primary);
 }
 
 .tab.active::after {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: calc(var(--border-width) * -1);
   left: 0;
   right: 0;
-  height: 2px;
+  height: var(--border-width);
   background-color: var(--primary-color);
 }
 
 .tab:hover:not(.active) {
-  color: var(--primary-hover-color);
+  color: var(--text-secondary);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-xl);
 }
 
 .title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin-bottom: 8px;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   max-height: 150px;
   opacity: 1;
   overflow: hidden;
@@ -281,18 +281,18 @@ const handleSubmit = async () => {
 }
 
 .input-group label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary-hover-color);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
 }
 
 .input-group input {
-  padding: 12px 16px;
-  border: 2px solid var(--border-input-color);
-  border-radius: 8px;
-  font-size: 15px;
-  transition: all 0.3s ease;
-  background-color: #fafafa;
+  padding: var(--space-md) var(--space-lg);
+  border: var(--border-width) solid var(--border-input-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
+  transition: all var(--transition-base);
+  background-color: var(--bg-input);
 }
 
 .input-group input:focus {
@@ -302,7 +302,7 @@ const handleSubmit = async () => {
 }
 
 .input-group input::placeholder {
-  color: #999;
+  color: var(--text-placeholder);
 }
 
 .submit-btn {
@@ -310,18 +310,18 @@ const handleSubmit = async () => {
   background-color: var(--primary-color);
   color: var(--secondary-color);
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 8px;
+  transition: all var(--transition-base);
+  margin-top: var(--space-sm);
 }
 
 .submit-btn:hover {
   background-color: var(--primary-hover-color);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .submit-btn:active {
@@ -330,21 +330,21 @@ const handleSubmit = async () => {
 
 /* Password strength indicator */
 .password-strength {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 
 .strength-bars {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .strength-bar {
   flex: 1;
   height: 4px;
-  background-color: #e5e5e5;
+  background-color: var(--border-color);
   border-radius: 2px;
-  transition: background-color 0.3s ease;
+  transition: background-color var(--transition-base);
 }
 
 .strength-bar.weak {
@@ -352,16 +352,16 @@ const handleSubmit = async () => {
 }
 
 .strength-bar.medium {
-  background-color: #ffaa00;
+  background-color: var(--color-warning);
 }
 
 .strength-bar.strong {
-  background-color: #00c851;
+  background-color: var(--color-success);
 }
 
 .password-requirements {
-  font-size: 12px;
-  color: var(--primary-active-color);
-  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
 }
 </style>

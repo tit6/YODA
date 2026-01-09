@@ -63,6 +63,14 @@ def ensure_master_key():
 
 def create_app():
     ensure_master_key()
+
+    # Initialiser MinIO
+    from module.minio_client import init_minio
+    try:
+        init_minio()
+    except Exception as e:
+        print(f"[WARNING] MinIO initialization failed: {e}")
+
     app = Flask(__name__)
     app.before_request(auth_middleware)
     register_blueprints(app)
