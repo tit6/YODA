@@ -53,7 +53,7 @@ jobs:
         run: |
           echo "Waiting for backend to start..."
           for i in {1..30}; do
-            if curl -s http://localhost:5000/api/coucou &> /dev/null; then
+            if curl -s http://localhost:5000/api/health &> /dev/null; then
               echo "Backend is ready!"
               break
             fi
@@ -93,13 +93,17 @@ jobs:
       - name: Test backend health endpoint
         run: |
           echo "Testing backend health endpoint..."
-          response=$(curl -s -w "\n%{http_code}" http://localhost:5000/api/coucou)
+          response=$(curl -s -w "\n%{http_code}" http://localhost:5000/api/health)
           status_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | head -n-1)
           echo "Status code: $status_code"
           echo "Response: $body"
           if [ "$status_code" != "200" ]; then
             echo "Health check failed with status code $status_code"
+            exit 1
+          fi
+          if ! echo "$body" | grep -q "ok"; then
+            echo "Health check response doesn't contain 'ok'"
             exit 1
           fi
 
