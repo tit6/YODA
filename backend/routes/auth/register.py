@@ -1,6 +1,6 @@
 from bcrypt import hashpw, gensalt
 
-from module.db import execute_write
+from module.db import execute_write, fetch_one
 from flask import Blueprint, jsonify, request
 
 from module.crypto import verifier_password
@@ -22,22 +22,23 @@ def register():
     if not name or not email or not password:
         return jsonify({"status": "error"}), 400
 
+    # Vérifier si l'email existe déjà
+    existing_user = fetch_one("SELECT id FROM users WHERE email = %s", (email,))
+    if existing_user is not None:
+        return jsonify({"status": "error", "message": "Cet email est déjà utilisé"}), 409
+
+    # Vérifier que les deux mots de passe correspondent avant le hachage
+    if password != second_password:
+        return jsonify({"status": "error"}), 400
 
     #bcrypt wait the bytes
     motdepasse_bytes = password.encode("utf-8")
-    second_password_bytes = second_password.encode("utf-8")
 
-    salt = gensalt()
-    # generate salt and hash
-    hash_bytes = hashpw(motdepasse_bytes, salt)
-    second_hash_bytes = hashpw(second_password_bytes, salt)
+    # generate salt and hash (bcrypt génère automatiquement le salt)
+    hash_bytes = hashpw(motdepasse_bytes, gensalt())
 
-    # save in utf8 and check password
+    # save in utf8
     hash_str = hash_bytes.decode("utf-8")
-    second_hash_str = second_hash_bytes.decode("utf-8")
-
-    if hash_str != second_hash_str:
-        return jsonify({"status": "error"}), 400
     
     if verifier_password(password):
         return jsonify({"status": "error"}), 401
