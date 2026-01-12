@@ -94,6 +94,66 @@ export const useDocumentsStore = defineStore('documents', {
       }
     },
 
+    async uploadDocument_shared(payload: {
+      file_name: string
+      file_data: string
+      dek_encrypted: string
+      iv: string
+      sha256: string
+      email?: string
+      time?: string
+      number_of_accesses?: number | null
+    }): Promise<{
+      status: 'success'
+      token: string
+    } | null> {
+      this.loading = true
+      this.error = ''
+
+      try {
+        const authStore = useAuthStore()
+        const response = await fetch('/api/share/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+
+        let data: any = null
+        const contentType = response.headers.get('content-type') || ''
+        if (contentType.includes('application/json')) {
+          data = await response.json()
+        } else {
+          const text = await response.text()
+          data = text ? { message: text } : null
+        }
+
+        if (!response.ok) {
+          const message = data?.message || data?.error || `HTTP ${response.status}`
+          this.error = message
+          console.error('Erreur uploadDocument_shared:', response.status, data)
+          return null
+        }
+
+        if (data?.status === 'success') {
+          // Rafraîchir la liste
+          await this.fetchDocuments()
+          return data
+        } else {
+          this.error = data?.message || 'Erreur inconnue'
+          return null
+        }
+      } catch (err) {
+        this.error = String(err)
+        console.error('Erreur uploadDocument:', err)
+        return null
+      } finally {
+        this.loading = false
+      }
+    },
+
     async downloadDocument(objectName: string): Promise<{
       blob: Blob,
       fileName: string,

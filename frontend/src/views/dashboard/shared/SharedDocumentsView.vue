@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import ShowCreateModal from './components/showCreateModal.vue'
 import ShowLinkModal from './components/showLinkModal.vue'
+import { useAuthStore } from '@/stores/auth'
 
 interface SharedDocument {
-  id: number
+  id: string
   documentName: string
   recipient: string
   createdAt: string
@@ -17,11 +18,23 @@ interface SharedDocument {
   status: 'active' | 'expired' | 'revoked'
 }
 
+interface SharedDocumentApi {
+  object_name: string
+  file_name: string
+  size: number
+  last_modified: string
+  dek_encrypted?: string
+  iv?: string
+  sha256?: string
+}
+
 const searchQuery = ref('')
 const showCreateModalVisible = ref(false)
 const showLinkModalVisible = ref(false)
 const generatedLink = ref('')
 const generatedLinkHasPassword = ref(false)
+const loading = ref(false)
+const error = ref('')
 
 // Données de démonstration
 const sharedDocuments = ref<SharedDocument[]>([
@@ -35,10 +48,10 @@ const createShare = (formData: {
   requirePassword: boolean
   password: string
   maxAccess: number | null
+  token: string
 }) => {
   // Génération du lien de partage
-  const linkId = Math.random().toString(36).substring(2, 10)
-  generatedLink.value = `https://yoda-vault.com/s/${linkId}`
+  generatedLink.value = `https://localhost:5173/s/${formData.token}`
   generatedLinkHasPassword.value = formData.requirePassword
 
   // Ajout du nouveau partage
@@ -46,7 +59,7 @@ const createShare = (formData: {
   expiresAt.setHours(expiresAt.getHours() + parseInt(formData.duration))
 
   sharedDocuments.value.unshift({
-    id: Date.now(),
+    id: String(Date.now()),
     documentName: formData.documentName,
     recipient: formData.recipient,
     createdAt: new Date().toLocaleString('fr-FR'),
@@ -64,6 +77,56 @@ const createShare = (formData: {
   showLinkModalVisible.value = true
 }
 
+const formatDate = (value: string) => {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('fr-FR')
+}
+
+const fetchSharedDocuments = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const authStore = useAuthStore()
+    const response = await fetch('/api/share/list', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    if (data.status !== 'success') {
+      throw new Error(data.message || 'Erreur inconnue')
+    }
+
+    const documents = (data.data?.documents || []) as SharedDocumentApi[]
+    sharedDocuments.value = documents.map((doc) => ({
+      id: doc.object_name,
+      documentName: doc.file_name,
+      recipient: '-',
+      createdAt: formatDate(doc.last_modified),
+      expiresAt: '-',
+      accessType: 'download',
+      hasPassword: false,
+      link: '',
+      accessCount: 0,
+      maxAccess: undefined,
+      status: 'active'
+    }))
+  } catch (err) {
+    error.value = String(err)
+    console.error('Erreur fetchSharedDocuments:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredDocuments = computed(() => {
   if (!searchQuery.value) return sharedDocuments.value
 
@@ -74,14 +137,14 @@ const filteredDocuments = computed(() => {
   )
 })
 
-const revokeShare = (shareId: number) => {
+const revokeShare = (shareId: string) => {
   const share = sharedDocuments.value.find(s => s.id === shareId)
   if (share && confirm(`Êtes-vous sûr de vouloir révoquer le partage de "${share.documentName}" ?`)) {
     share.status = 'revoked'
   }
 }
 
-const deleteShare = (shareId: number) => {
+const deleteShare = (shareId: string) => {
   const share = sharedDocuments.value.find(s => s.id === shareId)
   if (share && confirm(`Êtes-vous sûr de vouloir supprimer définitivement ce partage ?`)) {
     const index = sharedDocuments.value.findIndex(s => s.id === shareId)
@@ -106,6 +169,10 @@ const getStatusText = (status: string) => {
     default: return status
   }
 }
+
+onMounted(() => {
+  fetchSharedDocuments()
+})
 </script>
 
 <template>

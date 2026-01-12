@@ -67,6 +67,8 @@ def upload_document():
         return api_response({"status": "error", "message": f"Erreur lors de l'upload: {str(e)}"}, 500, user_id, f"Upload error: {str(e)}")
 
 
+
+
 @documents_bp.route("/documents/list", methods=["GET"])
 def list_documents():
     """

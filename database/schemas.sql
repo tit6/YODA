@@ -72,10 +72,11 @@ CREATE TABLE `documents` (
 -- 5)  shared file
 CREATE TABLE `shared_files` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `id_document` INT NOT NULL,      -- fichier partagé
+  `name_document` VARCHAR(255) NOT NULL,      -- fichier partagé
   `id_owner` INT NOT NULL,         -- propriétaire (créateur du partage)
   `token` VARCHAR(128) NOT NULL,   -- lien unique
-  `password` VARCHAR(255) NOT NULL,
+  `SEK` VARCHAR(255) NOT NULL,
+  `destination_email` VARCHAR(255) DEFAULT NULL,
   `expires_at` DATETIME NOT NULL,  -- date d’expiration
   `max_views` INT DEFAULT NULL,    -- nombre max de vues (optionnel)
   `views_count` INT NOT NULL DEFAULT 0,
@@ -84,11 +85,7 @@ CREATE TABLE `shared_files` (
 
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_UNIQUE` (`token`),
-  KEY `idx_shared_document` (`id_document`),
   KEY `idx_shared_owner` (`id_owner`),
-
-  CONSTRAINT `fk_shared_document`
-    FOREIGN KEY (`id_document`) REFERENCES `documents` (`id`) ON DELETE CASCADE,
 
   CONSTRAINT `fk_shared_owner`
     FOREIGN KEY (`id_owner`) REFERENCES `users` (`id`) ON DELETE CASCADE
