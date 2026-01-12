@@ -7,6 +7,8 @@ PUBLIC_PATHS = [
     "/api/register",
     "/api/validate_a2f",
     "/api/docs",
+    "/api/health",
+    "/api/db-test",
     "/static",
 ]
 
