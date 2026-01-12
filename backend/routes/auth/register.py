@@ -37,10 +37,13 @@ def register():
     second_hash_str = second_hash_bytes.decode("utf-8")
 
     if hash_str != second_hash_str:
-        return jsonify({"status": "error"}), 400
+        return jsonify({"status": "error", "message": "Les mots de passe ne correspondent pas"}), 400
     
-    if verifier_password(password):
-        return jsonify({"status": "error"}), 401
+    if not verifier_password(password):
+        return jsonify({
+            "status": "error", 
+            "message": "Le mot de passe doit contenir au minimum 16 caractères, 4 chiffres et 1 caractère spécial"
+        }), 401
 
     try:
         rowcount, user_id = execute_write(
@@ -49,5 +52,5 @@ def register():
     
         return jsonify({"status": "success", "user_id": user_id}), 200
     except Exception as exc:
-        return jsonify({"status": "error"}), 500
+        return jsonify({"status": "error", "message": "Erreur lors de l'enregistrement"}), 500
     
