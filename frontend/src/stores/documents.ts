@@ -103,6 +103,7 @@ export const useDocumentsStore = defineStore('documents', {
       email?: string
       time?: string
       number_of_accesses?: number | null
+      source_object_name?: string
     }): Promise<{
       status: 'success'
       token: string

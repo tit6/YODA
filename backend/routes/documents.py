@@ -1,7 +1,11 @@
-from flask import Blueprint, request, jsonify, send_file, g
-from module.minio_client import upload_file, list_user_files, download_file, delete_file
-from module.api_retour import api_response
+import os
 from io import BytesIO
+
+from flask import Blueprint, request, send_file, g
+
+from module.api_retour import api_response
+from module.db import execute_write, fetch_all, fetch_one
+from module.minio_client import upload_file, download_file, delete_file
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -41,17 +45,24 @@ def upload_document():
         # Décoder le fichier chiffré depuis base64
         import base64
         file_data = base64.b64decode(file_data_b64)
+        file_size = len(file_data)
+        _, ext = os.path.splitext(file_name)
+        extension = ext[1:].lower() if ext else None
 
-        # Métadonnées à stocker avec le fichier
-        metadata = {
-            "dek-encrypted": dek_encrypted,
-            "iv": iv,
-            "sha256": sha256,
-            "original-name": file_name
-        }
+        # Upload vers MinIO (sans métadonnées)
+        object_name = upload_file(user_id, file_data, file_name, {})
 
-        # Upload vers MinIO
-        object_name = upload_file(user_id, file_data, file_name, metadata)
+        try:
+            execute_write(
+                "INSERT INTO documents (id_users, id_folder, nom_original, extension, taille_octets, object_name, dek_encrypted, iv, sha256) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (user_id, None, file_name, extension, file_size, object_name, dek_encrypted, iv, sha256),
+            )
+        except Exception:
+            try:
+                delete_file(user_id, object_name)
+            except Exception as cleanup_exc:
+                print(f"[ERROR] Cleanup failed: {cleanup_exc}")
+            raise
 
         return api_response({
             "status": "success",
@@ -78,23 +89,30 @@ def list_documents():
         # Récupérer l'utilisateur depuis g (déjà décodé par le middleware)
         user_id = g.user.get("id")
 
-        # Récupérer la liste des fichiers
-        files = list_user_files(user_id)
+        # Récupérer la liste des documents depuis la base
+        rows = fetch_all(
+            "SELECT object_name, nom_original, taille_octets, created_at, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s ORDER BY created_at DESC",
+            (user_id,),
+        )
 
         # Formater la réponse
         documents = []
-        for file in files:
-            # Extraire le nom original depuis les métadonnées
-            original_name = file["metadata"].get("x-amz-meta-original-name", file["file_name"])
-
+        for row in rows:
+            created_at = row.get("created_at")
+            if created_at is None:
+                last_modified = None
+            elif hasattr(created_at, "isoformat"):
+                last_modified = created_at.isoformat()
+            else:
+                last_modified = str(created_at)
             documents.append({
-                "object_name": file["object_name"],
-                "file_name": original_name,
-                "size": file["size"],
-                "last_modified": file["last_modified"],
-                "dek_encrypted": file["metadata"].get("x-amz-meta-dek-encrypted"),
-                "iv": file["metadata"].get("x-amz-meta-iv"),
-                "sha256": file["metadata"].get("x-amz-meta-sha256")
+                "object_name": row["object_name"],
+                "file_name": row["nom_original"],
+                "size": row["taille_octets"],
+                "last_modified": last_modified,
+                "dek_encrypted": row["dek_encrypted"],
+                "iv": row["iv"],
+                "sha256": row["sha256"]
             })
 
         return api_response({
@@ -119,11 +137,18 @@ def download_document(object_name):
         # Récupérer l'utilisateur depuis g (déjà décodé par le middleware)
         user_id = g.user.get("id")
 
+        document = fetch_one(
+            "SELECT nom_original, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s AND object_name = %s",
+            (user_id, object_name),
+        )
+        if document is None:
+            return api_response({"status": "error", "message": "Accès non autorisé"}, 403, user_id, "Download denied: document not found")
+
         # Télécharger le fichier
-        file_data, metadata = download_file(user_id, object_name)
+        file_data, _ = download_file(user_id, object_name)
 
         # Récupérer le nom original
-        original_name = metadata.get("x-amz-meta-original-name", "document")
+        original_name = document.get("nom_original", "document")
 
         # Créer la réponse avec les métadonnées dans les headers
         response = send_file(
@@ -134,9 +159,9 @@ def download_document(object_name):
         )
 
         # Ajouter les métadonnées crypto dans les headers
-        response.headers["X-DEK-Encrypted"] = metadata.get("x-amz-meta-dek-encrypted", "")
-        response.headers["X-IV"] = metadata.get("x-amz-meta-iv", "")
-        response.headers["X-SHA256"] = metadata.get("x-amz-meta-sha256", "")
+        response.headers["X-DEK-Encrypted"] = document.get("dek_encrypted", "")
+        response.headers["X-IV"] = document.get("iv", "")
+        response.headers["X-SHA256"] = document.get("sha256", "")
 
         return response
 
@@ -156,8 +181,19 @@ def delete_document(object_name):
         # Récupérer l'utilisateur depuis g (déjà décodé par le middleware)
         user_id = g.user.get("id")
 
+        document = fetch_one(
+            "SELECT id FROM documents WHERE id_users = %s AND object_name = %s",
+            (user_id, object_name),
+        )
+        if document is None:
+            return api_response({"status": "error", "message": "Accès non autorisé"}, 403, user_id, "Delete denied: document not found")
+
         # Supprimer le fichier
         delete_file(user_id, object_name)
+        execute_write(
+            "DELETE FROM documents WHERE id = %s",
+            (document["id"],),
+        )
 
         return api_response({
             "status": "success",

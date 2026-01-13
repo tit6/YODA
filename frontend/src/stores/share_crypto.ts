@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { useDocumentsStore} from '@/stores/documents'
-import { DEK, PrivateKey } from '@/stores/crypto'
+import { DEK, PrivateKey, PrivateKeyExport } from '@/stores/crypto'
 import { decryptFileInChunks, encryptFileInChunks, blobToBase64InChunks } from '@/utils/fileEncryption'
 
 
@@ -83,9 +83,22 @@ export const useShareCryptoStore = defineStore('share_crypto', {
             )
 
             const newDekRaw = await crypto.subtle.exportKey("raw", newDek)
-            const newDekBase64 = arrayBufferToBase64(newDekRaw)
+            const passwordValue = password?.trim()
+            let dekPayload = ''
+
+            if (passwordValue) {
+              const { kek } = await PrivateKeyExport.deriveKeyFromPassphrase(passwordValue, newIv)
+              const wrappedDek = await crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: newIv },
+                kek,
+                newDekRaw
+              )
+              dekPayload = arrayBufferToBase64(wrappedDek)
+            } else {
+              dekPayload = arrayBufferToBase64(newDekRaw)
+            }
+
             const newIvBase64 = arrayBufferToBase64(newIv)
-            console.log('Nouvelle DEK (base64):', newDekBase64)
             console.log('Nouvel IV (base64):', newIvBase64)
 
             //download file
@@ -106,12 +119,13 @@ export const useShareCryptoStore = defineStore('share_crypto', {
             const uploadResult = await documentsStore.uploadDocument_shared({
               file_name: result.fileName,
               file_data: fileDataB64,
-              dek_encrypted: newDekBase64,
+              dek_encrypted: dekPayload,
               iv: newIvBase64,
               sha256: result.sha256,
               email: email,
               time: time,
               number_of_accesses: number_of_accesses,
+              source_object_name: document_name,
             })
             if (!uploadResult) {
               throw new Error(documentsStore.error || 'Erreur lors de l\'upload')

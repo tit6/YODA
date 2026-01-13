@@ -8,6 +8,8 @@ PUBLIC_PATHS = [
     "/api/validate_a2f",
     "/api/docs",
     "/static",
+    "/api/share/name_file",
+    "/api/share/download",
 ]
 
 TEMP_PATHS = [

@@ -57,10 +57,15 @@ CREATE TABLE `documents` (
   `nom_original` VARCHAR(255) NOT NULL,
   `extension` VARCHAR(10),
   `taille_octets` BIGINT NOT NULL,
+  `object_name` VARCHAR(512) NOT NULL,
+  `dek_encrypted` TEXT NOT NULL,
+  `iv` VARCHAR(64) NOT NULL,
+  `sha256` VARCHAR(64) NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_documents_user` (`id_users`),
   KEY `idx_documents_folder` (`id_folder`),
+  UNIQUE KEY `uniq_documents_object` (`object_name`),
   CONSTRAINT `fk_documents_users`
     FOREIGN KEY (`id_users`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_documents_folder`
@@ -74,8 +79,13 @@ CREATE TABLE `shared_files` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name_document` VARCHAR(255) NOT NULL,      -- fichier partagé
   `id_owner` INT NOT NULL,         -- propriétaire (créateur du partage)
+  `id_document` INT DEFAULT NULL,
+  `object_name` VARCHAR(512) NOT NULL,
+  `taille_octets` BIGINT NOT NULL,
   `token` VARCHAR(128) NOT NULL,   -- lien unique
   `SEK` VARCHAR(255) NOT NULL,
+  `iv` VARCHAR(64) NOT NULL,
+  `sha256` VARCHAR(64) NOT NULL,
   `destination_email` VARCHAR(255) DEFAULT NULL,
   `expires_at` DATETIME NOT NULL,  -- date d’expiration
   `max_views` INT DEFAULT NULL,    -- nombre max de vues (optionnel)
@@ -86,9 +96,12 @@ CREATE TABLE `shared_files` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_UNIQUE` (`token`),
   KEY `idx_shared_owner` (`id_owner`),
+  KEY `idx_shared_document` (`id_document`),
 
   CONSTRAINT `fk_shared_owner`
-    FOREIGN KEY (`id_owner`) REFERENCES `users` (`id`) ON DELETE CASCADE
+    FOREIGN KEY (`id_owner`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_shared_document`
+    FOREIGN KEY (`id_document`) REFERENCES `documents` (`id`) ON DELETE CASCADE
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
