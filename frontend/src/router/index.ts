@@ -6,6 +6,7 @@ import Verify2FAView from '../views/authentication/Verify2FAView.vue'
 import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
 import DocumentsView from '../views/dashboard/document/DocumentsView.vue'
 import SharedDocumentsView from '../views/dashboard/shared/SharedDocumentsView.vue'
+import public_shared from '../views/dashboard/public_share/PublicSharedView.vue'
 import AccountView from '../views/dashboard/account/AccountView.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -77,6 +78,11 @@ const router = createRouter({
 
           ]
       },
+      {
+          path: '/s/:token(.*)?',
+          name: 'shared-dashboard',
+          component: public_shared
+      },
 
       // Retourne login ou le dashboard si l'utilisateur tente d'aller sur une route inexistante.
       {
@@ -96,6 +102,10 @@ router.beforeEach((to, from) => {
     const auth = useAuthStore()
 
     auth.checkAuth()
+
+  if (to.name === 'shared-dashboard') {
+    return true
+  }
 
   // Si l'utilisateur a le 2FA à activer mais n'est pas sur la page de vérification
   if (authStore.requires_a2f && to.name !== 'verify-2fa') {
