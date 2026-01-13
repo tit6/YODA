@@ -10,6 +10,8 @@ PUBLIC_PATHS = [
     "/api/health",
     "/api/db-test",
     "/static",
+    "/api/share/name_file",
+    "/api/share/download",
 ]
 
 TEMP_PATHS = [

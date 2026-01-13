@@ -1,6 +1,9 @@
 <!-- Modal de création de partage -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useDocumentsStore } from '@/stores/documents'
+import {useShareCryptoStore} from '@/stores/share_crypto'
+
 
 const props = defineProps<{
   show: boolean
@@ -12,8 +15,6 @@ const emit = defineEmits<{
     documentName: string
     recipient: string
     duration: string
-    accessType: 'read' | 'download'
-    requirePassword: boolean
     password: string
     maxAccess: number | null
   }]
@@ -24,8 +25,6 @@ const shareForm = ref({
   documentName: '',
   recipient: '',
   duration: '48',
-  accessType: 'read' as 'read' | 'download',
-  requirePassword: true,
   password: '',
   maxAccess: null as number | null
 })
@@ -34,20 +33,46 @@ function handleClose() {
   emit('close')
 }
 
-const createShare = () => {
-  emit('create', { ...shareForm.value })
+const createShare = async () => {
+  try {
+    const token = await shareCryptoStore.share_document(
+      shareForm.value.documentName,
+      shareForm.value.recipient,
+      shareForm.value.duration,
+      shareForm.value.maxAccess,
+      shareForm.value.password
+    )
 
-  // Reset du formulaire
-  shareForm.value = {
-    documentName: '',
-    recipient: '',
-    duration: '48',
-    accessType: 'read',
-    requirePassword: true,
-    password: '',
-    maxAccess: null
+    console.log('Token du partage créé :', token)
+
+    emit('create', {
+      ...shareForm.value,
+      token
+    })
+
+    // Reset du formulaire
+    shareForm.value = {
+      documentName: '',
+      recipient: '',
+      duration: '48',
+      password: '',
+      maxAccess: null
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création du partage', error)
   }
 }
+
+
+
+//calling documents store to listen
+const documentsStore = useDocumentsStore()
+
+onMounted(async () => {
+  await documentsStore.fetchDocuments()
+})
+
+const shareCryptoStore = useShareCryptoStore()
 
 </script>
 
@@ -61,9 +86,20 @@ const createShare = () => {
             <label for="document">Document à partager</label>
             <select id="document" v-model="shareForm.documentName" required>
               <option value="">Sélectionner un document...</option>
-              <option value="Bilan 2024 - Confidentiel.pdf">Bilan 2024 - Confidentiel.pdf</option>
-              <option value="Contrat Commercial 2024.pdf">Contrat Commercial 2024.pdf</option>
-              <option value="Facture_2024_001.pdf">Facture_2024_001.pdf</option>
+              <option
+                v-for="doc in documentsStore.documents"
+                :key="doc.object_name"
+                :value="doc.object_name"
+              >
+                {{ doc.file_name }}
+              </option>
+              <option
+                v-if="!documentsStore.loading && documentsStore.documents.length === 0"
+                value=""
+                disabled
+              >
+                Aucun document disponible
+              </option>
             </select>
           </div>
 
@@ -78,27 +114,19 @@ const createShare = () => {
             />
           </div>
 
-          <div class="input-row">
-            <div class="input-group">
-              <label for="duration">Durée de validité</label>
-              <select id="duration" v-model="shareForm.duration">
-                <option value="1">1 heure</option>
-                <option value="6">6 heures</option>
-                <option value="24">24 heures</option>
-                <option value="48">48 heures</option>
-                <option value="168">7 jours</option>
-                <option value="720">30 jours</option>
-              </select>
-            </div>
 
-            <div class="input-group">
-              <label for="access-type">Type d'accès</label>
-              <select id="access-type" v-model="shareForm.accessType">
-                <option value="read">Lecture seule</option>
-                <option value="download">Téléchargement autorisé</option>
-              </select>
-            </div>
+          <div class="input-group">
+            <label for="duration">Durée de validité</label>
+            <select id="duration" v-model="shareForm.duration">
+              <option value="1">1 heure</option>
+              <option value="6">6 heures</option>
+              <option value="24">24 heures</option>
+              <option value="48">48 heures</option>
+              <option value="168">7 jours</option>
+              <option value="720">30 jours</option>
+            </select>
           </div>
+
 
           <div class="input-group">
             <label for="max-access">Nombre d'accès maximum (optionnel)</label>
@@ -111,23 +139,13 @@ const createShare = () => {
             />
           </div>
 
-          <div class="checkbox-group">
-            <input
-              id="require-password"
-              v-model="shareForm.requirePassword"
-              type="checkbox"
-            />
-            <label for="require-password">Protéger par mot de passe</label>
-          </div>
-
-          <div v-if="shareForm.requirePassword" class="input-group">
+          <div class="input-group">
             <label for="password">Mot de passe</label>
             <input
               id="password"
               v-model="shareForm.password"
-              type="text"
+              type="password"
               placeholder="Entrez un mot de passe"
-              :required="shareForm.requirePassword"
             />
             <p class="input-hint">Ce mot de passe devra être communiqué au destinataire séparément.</p>
           </div>
@@ -147,7 +165,7 @@ const createShare = () => {
 
 <style scoped>
 .modal-body {
-  width: 60vh;
+  width: 55vh;
   padding: 24px;
   display: flex;
   flex-direction: column;
