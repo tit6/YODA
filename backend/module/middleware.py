@@ -7,7 +7,11 @@ PUBLIC_PATHS = [
     "/api/register",
     "/api/validate_a2f",
     "/api/docs",
+    "/api/health",
+    "/api/db-test",
     "/static",
+    "/api/share/name_file",
+    "/api/share/download",
 ]
 
 TEMP_PATHS = [

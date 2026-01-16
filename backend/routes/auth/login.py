@@ -37,4 +37,5 @@ def login():
             return api_response({"status": "success", "token": token}, 200, mdp["id"], message)
                     
     except Exception as exc :
+        print(exc)
         return jsonify({"status": "error"}), 500
