@@ -11,6 +11,8 @@ register_bp = Blueprint("register", __name__)
 
 @register_bp.route("/register", methods=["POST"])
 def register():
+    if not request.json:
+        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
 
     name = request.json.get("name")
     prenom = request.json.get("prenom")
@@ -33,9 +35,11 @@ def register():
 
     #bcrypt wait the bytes
     motdepasse_bytes = password.encode("utf-8")
+    second_motdepasse_bytes = second_password.encode("utf-8")
 
     # generate salt and hash (bcrypt génère automatiquement le salt)
     hash_bytes = hashpw(motdepasse_bytes, gensalt())
+    second_hash_bytes = hashpw(second_motdepasse_bytes, gensalt())
 
     # save in utf8
     hash_str = hash_bytes.decode("utf-8")
