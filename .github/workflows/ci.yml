@@ -203,12 +203,12 @@ jobs:
           # First register a user
           curl -s -X POST http://localhost:5000/api/register \
             -H "Content-Type: application/json" \
-            -d '{"email":"login@example.com","password":"LoginTest1234!@#$","name":"Login","prenom":"Test","second_password":"LoginTest1234!@#$"}' || true
+            -d '{"email":"login@example.com","password":"LoginTest1234!@#$A","name":"Login","prenom":"Test","second_password":"LoginTest1234!@#$A"}' || true
           
           # Then try to login
           response=$(curl -s -X POST http://localhost:5000/api/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"login@example.com","password":"LoginTest1234!@#$"}')
+            -d '{"email":"login@example.com","password":"LoginTest1234!@#$A"}')
           echo "Login response: $response"
           if echo "$response" | grep -q "token\|error"; then
             echo "Login endpoint responding correctly"
@@ -222,13 +222,14 @@ jobs:
           # Register and login first
           curl -s -X POST http://localhost:5000/api/register \
             -H "Content-Type: application/json" \
-            -d '{"email":"doc@example.com","password":"DocTest1234!@#$","name":"Doc","prenom":"Test","second_password":"DocTest1234!@#$"}' || true
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$AB","name":"Doc","prenom":"Test","second_password":"DocTest1234!@#$AB"}' || true
           
           login_response=$(curl -s -X POST http://localhost:5000/api/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$AB"}')
           
-          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          echo "Login response: $login_response"
+          token=$(echo "$login_response" | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
           echo "Token obtained: ${token:0:20}..."
           
           if [ -z "$token" ]; then
@@ -257,9 +258,9 @@ jobs:
           echo "Testing document listing..."
           login_response=$(curl -s -X POST http://localhost:5000/api/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$AB"}')
           
-          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          token=$(echo "$login_response" | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
           
           if [ -z "$token" ]; then
             echo "Failed to obtain token for list test"
@@ -281,9 +282,9 @@ jobs:
           echo "Testing user info endpoint..."
           login_response=$(curl -s -X POST http://localhost:5000/api/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$AB"}')
           
-          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          token=$(echo "$login_response" | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
           
           if [ -z "$token" ]; then
             echo "Failed to obtain token"
@@ -303,9 +304,9 @@ jobs:
           echo "Testing public key endpoint..."
           login_response=$(curl -s -X POST http://localhost:5000/api/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$AB"}')
           
-          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          token=$(echo "$login_response" | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
           
           if [ -z "$token" ]; then
             echo "Failed to obtain token"
