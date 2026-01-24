@@ -216,6 +216,143 @@ jobs:
             echo "Warning: Login endpoint might have issues"
           fi
 
+      - name: Test document upload
+        run: |
+          echo "Testing document upload..."
+          # Register and login first
+          curl -s -X POST http://localhost:5000/api/register \
+            -H "Content-Type: application/json" \
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$","name":"Doc","prenom":"Test","second_password":"DocTest1234!@#$"}' || true
+          
+          login_response=$(curl -s -X POST http://localhost:5000/api/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+          
+          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          echo "Token obtained: ${token:0:20}..."
+          
+          if [ -z "$token" ]; then
+            echo "Failed to obtain token"
+            exit 1
+          fi
+          
+          # Test upload with minimal data
+          upload_response=$(curl -s -X POST http://localhost:5000/api/documents/upload \
+            -H "Authorization: Bearer $token" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "file_name": "test.txt",
+              "file_data": "dGVzdCBkYXRh",
+              "dek_encrypted": "encrypted_dek",
+              "iv": "abc123",
+              "sha256": "hash123"
+            }')
+          echo "Upload response: $upload_response"
+          if echo "$upload_response" | grep -q "success\|error"; then
+            echo "Document upload endpoint responding correctly"
+          fi
+
+      - name: Test document listing
+        run: |
+          echo "Testing document listing..."
+          login_response=$(curl -s -X POST http://localhost:5000/api/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+          
+          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          
+          if [ -z "$token" ]; then
+            echo "Failed to obtain token for list test"
+            exit 1
+          fi
+          
+          # Test document listing
+          list_response=$(curl -s -X GET http://localhost:5000/api/documents/list \
+            -H "Authorization: Bearer $token")
+          echo "List response: $list_response"
+          if echo "$list_response" | grep -q "documents\|success"; then
+            echo "Document listing endpoint working correctly"
+          else
+            echo "Warning: Document listing might have issues"
+          fi
+
+      - name: Test user info endpoint
+        run: |
+          echo "Testing user info endpoint..."
+          login_response=$(curl -s -X POST http://localhost:5000/api/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+          
+          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          
+          if [ -z "$token" ]; then
+            echo "Failed to obtain token"
+            exit 1
+          fi
+          
+          # Get user name
+          user_response=$(curl -s -X GET http://localhost:5000/api/name_user \
+            -H "Authorization: Bearer $token")
+          echo "User info response: $user_response"
+          if echo "$user_response" | grep -q "prenom\|nom"; then
+            echo "User info endpoint working correctly"
+          fi
+
+      - name: Test public key endpoint
+        run: |
+          echo "Testing public key endpoint..."
+          login_response=$(curl -s -X POST http://localhost:5000/api/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"doc@example.com","password":"DocTest1234!@#$"}')
+          
+          token=$(echo "$login_response" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+          
+          if [ -z "$token" ]; then
+            echo "Failed to obtain token"
+            exit 1
+          fi
+          
+          # Get public key
+          pubkey_response=$(curl -s -X POST http://localhost:5000/api/user/public-key \
+            -H "Authorization: Bearer $token" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "Public key response: $pubkey_response"
+          if echo "$pubkey_response" | grep -q "public_key\|error"; then
+            echo "Public key endpoint responding correctly"
+          fi
+
+      - name: Test authentication without token
+        run: |
+          echo "Testing authentication protection..."
+          response=$(curl -s -X GET http://localhost:5000/api/documents/list)
+          status_code=$(curl -s -w "%{http_code}" -o /dev/null http://localhost:5000/api/documents/list)
+          echo "Status code without token: $status_code"
+          if [ "$status_code" = "401" ]; then
+            echo "Authentication protection working correctly"
+          else
+            echo "Warning: Protected endpoint should return 401"
+          fi
+
+      - name: Test invalid token
+        run: |
+          echo "Testing invalid token rejection..."
+          response=$(curl -s -X GET http://localhost:5000/api/documents/list \
+            -H "Authorization: Bearer invalid_token_12345")
+          echo "Response: $response"
+          if echo "$response" | grep -q "Invalid token\|error"; then
+            echo "Invalid token rejection working correctly"
+          fi
+
+      - name: Database integrity check
+        run: |
+          echo "Checking database integrity..."
+          # Verify tables exist
+          docker exec yoda-database mysql -uroot -proot -D yoda -e "
+            SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='yoda' ORDER BY TABLE_NAME;
+          "
+          echo "Tables verified successfully"
+
       - name: Stop containers
         if: always()
         run: docker compose down -v

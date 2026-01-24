@@ -31,28 +31,18 @@ def register():
 
     # Vérifier que les deux mots de passe correspondent avant le hachage
     if password != second_password:
-        return jsonify({"status": "error"}), 400
-
-    #bcrypt wait the bytes
-    motdepasse_bytes = password.encode("utf-8")
-    second_motdepasse_bytes = second_password.encode("utf-8")
-
-    # generate salt and hash (bcrypt génère automatiquement le salt)
-    hash_bytes = hashpw(motdepasse_bytes, gensalt())
-    second_hash_bytes = hashpw(second_motdepasse_bytes, gensalt())
-
-    # save in utf8
-    hash_str = hash_bytes.decode("utf-8")
-    second_hash_str = second_hash_bytes.decode("utf-8")
-
-    if hash_str != second_hash_str:
         return jsonify({"status": "error", "message": "Les mots de passe ne correspondent pas"}), 400
-    
+
     if not verifier_password(password):
         return jsonify({
             "status": "error", 
             "message": "Le mot de passe doit contenir au minimum 16 caractères, 4 chiffres et 1 caractère spécial"
         }), 401
+
+    # Hash the password with bcrypt
+    password_bytes = password.encode("utf-8")
+    hash_bytes = hashpw(password_bytes, gensalt())
+    hash_str = hash_bytes.decode("utf-8")
 
     try:
         rowcount, user_id = execute_write(
