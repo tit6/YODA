@@ -24,9 +24,15 @@ def upload_document():
         "sha256": "hash_du_fichier_original"
     }
     """
+    user_id = None
     try:
         # Récupérer l'utilisateur depuis g (déjà décodé par le middleware)
+        if not g.user:
+            return api_response({"status": "error", "message": "Non authentifié"}, 401, None, "Upload failed: not authenticated")
+        
         user_id = g.user.get("id")
+        if not user_id:
+            return api_response({"status": "error", "message": "ID utilisateur manquant"}, 401, None, "Upload failed: missing user ID")
 
         # Récupérer les données du formulaire
         data = request.get_json()
@@ -85,9 +91,15 @@ def list_documents():
     """
     Liste tous les documents de l'utilisateur
     """
+    user_id = None
     try:
         # Récupérer l'utilisateur depuis g (déjà décodé par le middleware)
+        if not g.user:
+            return api_response({"status": "error", "message": "Non authentifié"}, 401, None, "List failed: not authenticated")
+        
         user_id = g.user.get("id")
+        if not user_id:
+            return api_response({"status": "error", "message": "ID utilisateur manquant"}, 401, None, "List failed: missing user ID")
 
         # Récupérer la liste des documents depuis la base
         rows = fetch_all(
