@@ -8,6 +8,8 @@ import re
 
 def aes256_encrypt(data: bytes) -> str:
     key = APP_MASTER_KEY
+    if key is None:
+        raise ValueError("APP_MASTER_KEY is not configured")
     # 1) Générer un IV aléatoire de 16 octets
     iv = get_random_bytes(16)
 
@@ -25,6 +27,8 @@ def aes256_encrypt(data: bytes) -> str:
 
 def aes256_decrypt(b64_data: str) -> bytes:
     key = APP_MASTER_KEY
+    if key is None:
+        raise ValueError("APP_MASTER_KEY is not configured")
     # 1) Décoder le base64
     iv_and_ciphertext = base64.b64decode(b64_data)
 
