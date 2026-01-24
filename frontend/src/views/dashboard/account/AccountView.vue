@@ -6,17 +6,21 @@ import PasswordA2FModal from './components/PasswordA2FModal.vue'
 import ActivateA2FModal from './components/ActivateA2FModal.vue'
 import DisableA2FModal from './components/DisableA2FModal.vue'
 import ExportPrivateKeyModal from './components/ExportPrivateKeyModal.vue'
+import ImportPrivateKeyModal from './components/ImportPrivateKeyModal.vue'
 
 const authStore = useAuthStore()
 const showPasswordModal = ref(false)
 const showA2FModal = ref(false)
 const showDisableA2FModal = ref(false)
 const showExportModal = ref(false)
+const showImportModal = ref(false)
 const qrCodeBase64 = ref('')
 const secretKey = ref('')
 const isA2FActive = ref(false)
 const exportError = ref('')
 const isExporting = ref(false)
+const importError = ref('')
+const isImporting = ref(false)
 
 const oldPassword = ref('')
 const newPassword = ref('')
@@ -220,6 +224,52 @@ async function handleExportPrivateKey(passphrase: string, confirmPassphrase: str
   }
 }
 
+function openImportModal() {
+  showImportModal.value = true
+  importError.value = ''
+}
+
+function closeImportModal() {
+  showImportModal.value = false
+  importError.value = ''
+}
+
+async function handleImportPrivateKey(file: File, passphrase: string) {
+  importError.value = ''
+
+  if (!passphrase) {
+    importError.value = 'Veuillez saisir la passphrase'
+    return
+  }
+
+  isImporting.value = true
+
+  try {
+    // Lecture du fichier
+    const fileContent = await file.text()
+
+    // Import et déchiffrement de la clé privée
+    await PrivateKeyExport.importPrivateKey(fileContent, passphrase)
+
+    alert('Clé privée importée avec succès!\n\nVotre clé a été restaurée et est maintenant utilisable pour déchiffrer vos documents.')
+
+    closeImportModal()
+  } catch (error: any) {
+    console.error('Erreur lors de l\'import:', error)
+    if (error.message?.includes('decrypt')) {
+      importError.value = 'Passphrase incorrecte ou fichier corrompu'
+    } else if (error.message?.includes('Format')) {
+      importError.value = 'Format de fichier invalide'
+    } else if (error.message?.includes('empreinte')) {
+      importError.value = 'L\'empreinte de la clé ne correspond pas'
+    } else {
+      importError.value = 'Erreur lors de l\'import de la clé privée'
+    }
+  } finally {
+    isImporting.value = false
+  }
+}
+
 onMounted(() => {
   status_a2f();
 })
@@ -298,14 +348,24 @@ onMounted(() => {
         <p class="export-description">
           Sauvegardez votre clé privée pour pouvoir restaurer votre compte en cas de besoin.
         </p>
-        <button class="export-btn" @click="openExportModal">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Sauvegarder ma clé privée
-        </button>
+        <div class="key-buttons">
+          <button class="export-btn" @click="openExportModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Sauvegarder ma clé privée
+          </button>
+          <button class="import-btn" @click="openImportModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Restaurer ma clé privée
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -337,6 +397,14 @@ onMounted(() => {
     :is-exporting="isExporting"
     @close="closeExportModal"
     @export="handleExportPrivateKey"
+  />
+
+  <ImportPrivateKeyModal
+    :show="showImportModal"
+    :error="importError"
+    :is-importing="isImporting"
+    @close="closeImportModal"
+    @import="handleImportPrivateKey"
   />
 
 </template>
@@ -489,7 +557,14 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-.export-btn {
+.key-buttons {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.export-btn,
+.import-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
@@ -502,20 +577,22 @@ onMounted(() => {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   transition: all var(--transition-base);
-  align-self: flex-start;
 }
 
-.export-btn:hover {
+.export-btn:hover,
+.import-btn:hover {
   background: var(--primary-hover-color);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
-.export-btn:active {
+.export-btn:active,
+.import-btn:active {
   transform: translateY(0);
 }
 
-.export-btn svg {
+.export-btn svg,
+.import-btn svg {
   flex-shrink: 0;
 }
 
