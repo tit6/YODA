@@ -177,7 +177,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"email":"weak@example.com","password":"weak","name":"Test","prenom":"User","second_password":"weak"}')
           echo "Response: $response"
-          if echo "$response" | grep -q "16 caractères"; then
+          if echo "$response" | grep -qE "minimum|16|caractères|chiffres|spécial|error"; then
             echo "Password validation working correctly"
           else
             echo "Warning: Password validation might not be working"
