@@ -6,7 +6,7 @@ from .auth.a2f  import active_a2f, check_a2f, diable_a2f, login_a2f, statue_a2f_
 from .docs import docs_bp
 from .user import name_user, statue_session, change_password, public_key_bp
 from .documents import documents_bp
-
+from .share.share import share
 
 def register_blueprints(app):
     api_prefix = "/api"
@@ -25,3 +25,4 @@ def register_blueprints(app):
     app.register_blueprint(public_key_bp, url_prefix=api_prefix)
     app.register_blueprint(documents_bp, url_prefix=api_prefix)
     app.register_blueprint(docs_bp)
+    app.register_blueprint(share, url_prefix=api_prefix)

@@ -1,111 +1,17 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import ShowCreateModal from './components/showCreateModal.vue'
 import ShowLinkModal from './components/showLinkModal.vue'
+import { useShareFonctionStore } from '@/stores/share_fonction'
 
-interface SharedDocument {
-  id: number
-  documentName: string
-  recipient: string
-  createdAt: string
-  expiresAt: string
-  accessType: 'read' | 'download'
-  hasPassword: boolean
-  link: string
-  accessCount: number
-  maxAccess?: number
-  status: 'active' | 'expired' | 'revoked'
-}
-
+const shareStore = useShareFonctionStore()
 const searchQuery = ref('')
-const showCreateModalVisible = ref(false)
-const showLinkModalVisible = ref(false)
-const generatedLink = ref('')
-const generatedLinkHasPassword = ref(false)
 
-// Données de démonstration
-const sharedDocuments = ref<SharedDocument[]>([
-])
+const filteredDocuments = computed(() => shareStore.filterDocuments(searchQuery.value))
 
-const createShare = (formData: {
-  documentName: string
-  recipient: string
-  duration: string
-  accessType: 'read' | 'download'
-  requirePassword: boolean
-  password: string
-  maxAccess: number | null
-}) => {
-  // Génération du lien de partage
-  const linkId = Math.random().toString(36).substring(2, 10)
-  generatedLink.value = `https://yoda-vault.com/s/${linkId}`
-  generatedLinkHasPassword.value = formData.requirePassword
-
-  // Ajout du nouveau partage
-  const expiresAt = new Date()
-  expiresAt.setHours(expiresAt.getHours() + parseInt(formData.duration))
-
-  sharedDocuments.value.unshift({
-    id: Date.now(),
-    documentName: formData.documentName,
-    recipient: formData.recipient,
-    createdAt: new Date().toLocaleString('fr-FR'),
-    expiresAt: expiresAt.toLocaleString('fr-FR'),
-    accessType: formData.accessType,
-    hasPassword: formData.requirePassword,
-    link: generatedLink.value,
-    accessCount: 0,
-    maxAccess: formData.maxAccess || undefined,
-    status: 'active'
-  })
-
-  // Fermer modal de création et ouvrir modal de lien
-  showCreateModalVisible.value = false
-  showLinkModalVisible.value = true
-}
-
-const filteredDocuments = computed(() => {
-  if (!searchQuery.value) return sharedDocuments.value
-
-  const query = searchQuery.value.toLowerCase()
-  return sharedDocuments.value.filter(doc =>
-    doc.documentName.toLowerCase().includes(query) ||
-    doc.recipient.toLowerCase().includes(query)
-  )
+onMounted(() => {
+  shareStore.fetchSharedDocuments()
 })
-
-const revokeShare = (shareId: number) => {
-  const share = sharedDocuments.value.find(s => s.id === shareId)
-  if (share && confirm(`Êtes-vous sûr de vouloir révoquer le partage de "${share.documentName}" ?`)) {
-    share.status = 'revoked'
-  }
-}
-
-const deleteShare = (shareId: number) => {
-  const share = sharedDocuments.value.find(s => s.id === shareId)
-  if (share && confirm(`Êtes-vous sûr de vouloir supprimer définitivement ce partage ?`)) {
-    const index = sharedDocuments.value.findIndex(s => s.id === shareId)
-    sharedDocuments.value.splice(index, 1)
-  }
-}
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'active': return '#00c851'
-    case 'expired': return '#ffaa00'
-    case 'revoked': return '#ff4444'
-    default: return '#999'
-  }
-}
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'active': return 'Actif'
-    case 'expired': return 'Expiré'
-    case 'revoked': return 'Révoqué'
-    default: return status
-  }
-}
 </script>
 
 <template>
@@ -114,7 +20,7 @@ const getStatusText = (status: string) => {
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <button @click="showCreateModalVisible = true" class="btn-primary">
+        <button @click="shareStore.showCreateModalVisible = true" class="btn-primary">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 6.65685 16.3431 8 18 8Z" stroke="currentColor" stroke-width="2"/>
             <path d="M6 15C7.65685 15 9 13.6569 9 12C9 10.3431 7.65685 9 6 9C4.34315 9 3 10.3431 3 12C3 13.6569 4.34315 15 6 15Z" stroke="currentColor" stroke-width="2"/>
@@ -149,7 +55,6 @@ const getStatusText = (status: string) => {
               <th>Créé le</th>
               <th>Expire le</th>
               <th>Accès</th>
-              <th>Sécurité</th>
               <th>Statut</th>
               <th>Actions</th>
             </tr>
@@ -177,37 +82,29 @@ const getStatusText = (status: string) => {
               <td class="date-cell">{{ share.expiresAt }}</td>
               <td>
                 <div class="access-cell">
-                  <span class="access-badge" :class="share.accessType">
-                    {{ share.accessType === 'read' ? 'Lecture seule' : 'Téléchargement' }}
+                  <span class="access-badge" :class="share.view_count >= share.maxAccess && share.maxAccess ? 'access-limit-reached' : ''" :style="{ backgroundColor: (share.view_count >= share.maxAccess && share.maxAccess) ? '#ff444420' : '#007bff20', color: (share.view_count >= share.maxAccess && share.maxAccess) ? '#ff4444' : '#007bff' }">
+                    {{ share.view_count }} / {{ share.maxAccess || '∞' }}
                   </span>
                 </div>
               </td>
               <td>
-                <div class="security-cell">
-                  <svg v-if="share.hasPassword" class="lock-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 8H17V6C17 3.24 14.76 1 12 1C9.24 1 7 3.24 7 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15C10 13.9 10.9 13 12 13C13.1 13 14 13.9 14 15C14 16.1 13.1 17 12 17ZM15.1 8H8.9V6C8.9 4.29 10.29 2.9 12 2.9C13.71 2.9 15.1 4.29 15.1 6V8Z" fill="currentColor"/>
-                  </svg>
-                  <span>{{ share.hasPassword ? 'Protégé' : 'Public' }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="status-badge" :style="{ backgroundColor: getStatusColor(share.status) + '20', color: getStatusColor(share.status) }">
-                  {{ getStatusText(share.status) }}
-                </span>
-              </td>
-              <td>
-                <div class="actions-cell">
-                  <button @click="generatedLink = share.link; showLinkModalVisible = true; generatedLinkHasPassword = share.hasPassword" class="action-btn" title="Copier le lien">
+                  <span class="status-badge" :style="{ backgroundColor: shareStore.getStatusColor(share.status) + '20', color: shareStore.getStatusColor(share.status) }">
+                    {{ shareStore.getStatusText(share.status) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                  <button @click="shareStore.openShareLink(share)" class="action-btn" title="Copier le lien">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
                     </svg>
                   </button>
-                  <button v-if="share.status === 'active'" @click="revokeShare(share.id)" class="action-btn revoke" title="Révoquer">
+                  <button @click="shareStore.revokeShare(share.id)" class="action-btn revoke" :title="share.status === '0' ? 'Révoquer' : 'Réactiver'">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15.59 7L12 10.59L8.41 7L7 8.41L10.59 12L7 15.59L8.41 17L12 13.41L15.59 17L17 15.59L13.41 12L17 8.41L15.59 7Z" fill="currentColor"/>
                     </svg>
                   </button>
-                  <button @click="deleteShare(share.id)" class="action-btn delete" title="Supprimer">
+                  <button @click="shareStore.deleteShare(share.id)" class="action-btn delete" title="Supprimer">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M16 9V19H8V9H16ZM14.5 3H9.5L8.5 4H5V6H19V4H15.5L14.5 3ZM18 7H6V19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7Z" fill="currentColor"/>
                     </svg>
@@ -233,16 +130,16 @@ const getStatusText = (status: string) => {
 
     <!-- Modals -->
     <ShowCreateModal
-      :show="showCreateModalVisible"
-      @close="showCreateModalVisible = false"
-      @create="createShare"
+      :show="shareStore.showCreateModalVisible"
+      @close="shareStore.showCreateModalVisible = false"
+      @create="shareStore.createShare"
     />
 
     <ShowLinkModal
-      :show="showLinkModalVisible"
-      :link="generatedLink"
-      :has-password="generatedLinkHasPassword"
-      @close="showLinkModalVisible = false"
+      :show="shareStore.showLinkModalVisible"
+      :link="shareStore.generatedLink"
+      :has-password="shareStore.generatedLinkHasPassword"
+      @close="shareStore.showLinkModalVisible = false"
     />
   </div>
 </template>
