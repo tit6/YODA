@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, g
 from bcrypt import checkpw
 
-from module.db import fetch_one
+from module.db import fetch_one, execute_write
 from module.jwt_ag import encode_jwt
 from module.api_retour import api_response
 from routes.auth.a2f import check_a2f_status
@@ -23,6 +23,9 @@ def login():
         motdepasse_bytes = password.encode("utf-8")
         hash_bytes = mdp['mdp'].encode("utf-8")
         if not checkpw(motdepasse_bytes, hash_bytes):
+
+            execute_write("INSERT INTO failed_login_attempts (email, ip) VALUES (%s, %s)", (email, request.remote_addr))
+
             return jsonify({"status": "error"}), 403
         
         else :
