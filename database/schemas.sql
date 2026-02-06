@@ -118,12 +118,13 @@ CREATE TABLE `shared_acces_log` (
     FOREIGN KEY (`id_shared_file`) REFERENCES `shared_files` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---7) failed login attempts
+-- 7) failed login attempts
 CREATE TABLE `failed_login_attempts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(255) NOT NULL,
     `ip` VARCHAR(100) NOT NULL,
-    `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- données de test
