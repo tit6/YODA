@@ -105,6 +105,27 @@ CREATE TABLE `shared_files` (
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 6)  shared file
+CREATE TABLE `shared_acces_log` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `id_shared_file` INT NOT NULL,   -- référence au fichier partagé
+  `accessed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- date et heure de l’accès
+  `ip_address` VARCHAR(45) NOT NULL,  -- adresse IP
+  `user_agent` VARCHAR(1024) NOT NULL, -- user agent du visiteur
+  PRIMARY KEY (`id`),
+  KEY `idx_shared_access` (`id_shared_file`),
+  CONSTRAINT `fk_shared_access`
+    FOREIGN KEY (`id_shared_file`) REFERENCES `shared_files` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--7) failed login attempts
+CREATE TABLE `failed_login_attempts` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(255) NOT NULL,
+    `ip` VARCHAR(100) NOT NULL,
+    `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- données de test
 INSERT INTO users VALUES (1,'admin', 'prenom','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0, 'Null');
 
