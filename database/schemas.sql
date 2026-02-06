@@ -121,9 +121,9 @@ CREATE TABLE `shared_acces_log` (
 -- 7) failed login attempts
 CREATE TABLE `failed_login_attempts` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `email` VARCHAR(255) NOT NULL,
     `ip` VARCHAR(100) NOT NULL,
-    `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `last_attempt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `attempts` INT NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
