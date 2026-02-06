@@ -1,12 +1,14 @@
 from flask import request, jsonify, g
 import jwt
-from jwt import InvalidTokenError, ExpiredSignatureError
+from jwt import ExpiredSignatureError, DecodeError
 from .config import SECRET_KEY
 PUBLIC_PATHS = [
     "/api/login",
     "/api/register",
     "/api/validate_a2f",
     "/api/docs",
+    "/api/health",
+    "/api/db-test",
     "/static",
     "/api/share/name_file",
     "/api/share/download",
@@ -22,6 +24,8 @@ def is_public(path: str) -> bool:
 def auth_middleware():
     
     path = request.path
+    g.user = None  # Initialiser g.user par défaut
+    
     if is_public(path):
         return  # route non protégée
 
@@ -36,7 +40,7 @@ def auth_middleware():
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     except ExpiredSignatureError:
         return jsonify({"error": "Token expired"}), 401
-    except InvalidTokenError:
+    except DecodeError:
         return jsonify({"error": "Invalid token"}), 401
 
     if payload.get("a2f") == 1 and path not in TEMP_PATHS:

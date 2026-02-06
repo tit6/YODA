@@ -20,6 +20,8 @@ tags:
     description: Profil utilisateur
   - name: session
     description: Statut de session et changement de mot de passe
+  - name: documents
+    description: Gestion des documents chiffrés
 paths:
   /api/login:
     post:
@@ -264,11 +266,14 @@ paths:
               properties:
                 password:
                   type: string
-              required: [password]
+                otp:
+                  type: string
+              required: [password, otp]
             examples:
               disable:
                 value:
                   password: secret123
+                  otp: "123456"
       responses:
         "200":
           description: 2FA désactivée
@@ -303,12 +308,15 @@ paths:
                   type: string
                 new_password:
                   type: string
-              required: [old_password, new_password]
+                confirme_password:
+                  type: string
+              required: [old_password, new_password, confirme_password]
             examples:
               change:
                 value:
                   old_password: ancienSecret
                   new_password: nouveauMotDePasse
+                  confirme_password: nouveauMotDePasse
       responses:
         "200":
           description: Mot de passe changé
@@ -389,6 +397,118 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessOnly'
+  /api/user/public-key:
+    get:
+      tags: [users]
+      summary: Récupère la clé publique RSA de l'utilisateur
+      responses:
+        "200":
+          description: Clé publique récupérée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicKeyResponse'
+        "404":
+          description: Clé publique non trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [users]
+      summary: Sauvegarde la clé publique RSA de l'utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicKeyRequest'
+      responses:
+        "200":
+          description: Clé publique sauvegardée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessOnly'
+        "400":
+          description: Clé publique manquante
+        "409":
+          description: Une clé publique existe déjà
+  /api/documents/upload:
+    post:
+      tags: [documents]
+      summary: Upload un document chiffré
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentUploadRequest'
+      responses:
+        "200":
+          description: Document uploadé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentUploadResponse'
+  /api/documents/list:
+    get:
+      tags: [documents]
+      summary: Liste tous les documents de l'utilisateur
+      responses:
+        "200":
+          description: Liste des documents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentListResponse'
+  /api/documents/download/{object_name}:
+    get:
+      tags: [documents]
+      summary: Télécharge un document chiffré
+      parameters:
+        - name: object_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nom de l'objet dans MinIO
+      responses:
+        "200":
+          description: Fichier binaire chiffré
+          headers:
+            X-DEK-Encrypted:
+              schema:
+                type: string
+            X-IV:
+              schema:
+                type: string
+            X-SHA256:
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /api/documents/delete/{object_name}:
+    delete:
+      tags: [documents]
+      summary: Supprime un document
+      parameters:
+        - name: object_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nom de l'objet à supprimer
+      responses:
+        "200":
+          description: Document supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessOnly'
 security:
   - bearerAuth: []
 components:
@@ -440,12 +560,16 @@ components:
       properties:
         name:
           type: string
+        prenom:
+          type: string
         email:
           type: string
           format: email
         password:
           type: string
-      required: [name, email, password]
+        second_password:
+          type: string
+      required: [name, prenom, email, password, second_password]
     RegisterSuccess:
       type: object
       properties:
@@ -468,3 +592,81 @@ components:
         prenom:
           type: string
           example: John
+    PublicKeyRequest:
+      type: object
+      properties:
+        public_key:
+          type: string
+      required: [public_key]
+    PublicKeyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            public_key:
+              type: string
+    DocumentUploadRequest:
+      type: object
+      properties:
+        file_name:
+          type: string
+        file_data:
+          type: string
+          description: Données chiffrées en base64
+        dek_encrypted:
+          type: string
+        iv:
+          type: string
+        sha256:
+          type: string
+      required: [file_name, file_data, dek_encrypted, iv, sha256]
+    DocumentUploadResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+            object_name:
+              type: string
+            file_name:
+              type: string
+    DocumentListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            documents:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentItem'
+            count:
+              type: integer
+    DocumentItem:
+      type: object
+      properties:
+        object_name:
+          type: string
+        file_name:
+          type: string
+        size:
+          type: integer
+        last_modified:
+          type: string
+          format: date-time
+        dek_encrypted:
+          type: string
+        iv:
+          type: string
+        sha256:
+          type: string

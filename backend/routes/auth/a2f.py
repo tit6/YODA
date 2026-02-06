@@ -29,28 +29,33 @@ def is_password_valid(password: str, hashed_password: str) -> bool:
 
 @diable_a2f.route("/disable_a2f", methods=["POST"])
 def a2fd():
-    id_user = g.user["id"]
-    password = request.json.get("password")
-    otp = request.json.get("otp")
-    if password is None:
-        return api_response({"status": "error"}, 400, id_user, "2FA disable failed: missing password")
-    
-    mdp = fetch_user_fields(id_user, ("mdp", "secret_a2f"))
-    if mdp is None:
-        return api_response({"status": "error"}, 404, id_user, "2FA disable failed: user not found")
-    if not is_password_valid(password, mdp["mdp"]) or (not mdp["secret_a2f"]):
-        return api_response({"status": "error"}, 401, id_user, "2FA disable failed: bad password")
+    try:
+        id_user = g.user["id"]
+        password = request.json.get("password")
+        otp = request.json.get("otp")
+        if password is None:
+            return api_response({"status": "error"}, 400, id_user, "2FA disable failed: missing password")
 
+        mdp = fetch_user_fields(id_user, ("mdp", "secret_a2f"))
+        if mdp is None:
+            return api_response({"status": "error"}, 404, id_user, "2FA disable failed: user not found")
+        if not is_password_valid(password, mdp["mdp"]) or (not mdp["secret_a2f"]):
+            return api_response({"status": "error"}, 401, id_user, "2FA disable failed: bad password")
 
-    decrypted_key = aes256_decrypt(mdp["secret_a2f"])
-    totp = pyotp.TOTP(decrypted_key)
-    if not totp.verify(otp):
-        return api_response({"status": "error"}, 401, id_user, "2FA disable failed: invalid OTP")
+        decrypted_key = aes256_decrypt(mdp["secret_a2f"])
+        totp = pyotp.TOTP(decrypted_key)
+        if not totp.verify(otp):
+            return api_response({"status": "error"}, 401, id_user, "2FA disable failed: invalid OTP")
 
-    if not update_otp_status("Null", 0, id_user):
-        return api_response({"status": "error"}, 500, id_user, "2FA disable failed: DB error")
+        if not update_otp_status(None, 0, id_user):
+            return api_response({"status": "error"}, 500, id_user, "2FA disable failed: DB error")
 
-    return api_response({"status": "success"}, 200, id_user, "Disabled 2FA")
+        return api_response({"status": "success"}, 200, id_user, "Disabled 2FA")
+    except Exception as exc:
+        print(f"ERROR in disable_a2f: {exc}")
+        import traceback
+        traceback.print_exc()
+        return api_response({"status": "error", "message": str(exc)}, 500, id_user if 'id_user' in locals() else 0, f"2FA disable failed: {exc}")
     
 
 
@@ -114,41 +119,47 @@ def validate_a2f():
 
 @active_a2f.route("/active_a2f", methods=["POST"])
 def a2f():
-    id_user = g.user["id"]
-    current_status = check_a2f_status(id_user)
-    if current_status == 2:
-        return api_response({"status": "error"}, 400, id_user, "2FA activation blocked: already active")
-    
-    password = request.json.get("password")
+    try:
+        id_user = g.user["id"]
+        current_status = check_a2f_status(id_user)
+        if current_status == 2:
+            return api_response({"status": "error"}, 400, id_user, "2FA activation blocked: already active")
 
-    if password is None:
-        return api_response({"status": "error"}, 400, id_user, "2FA activation failed: missing password")
+        password = request.json.get("password")
 
-    mdp = fetch_user_fields(id_user, ("email", "mdp"))
-    if mdp is None:
-        return api_response({"status": "error"}, 404, id_user, "2FA activation failed: user not found")
+        if password is None:
+            return api_response({"status": "error"}, 400, id_user, "2FA activation failed: missing password")
 
-    if not is_password_valid(password, mdp["mdp"]):
-        return api_response({"status": "error"}, 401, id_user, "2FA activation failed: bad password")
+        mdp = fetch_user_fields(id_user, ("email", "mdp"))
+        if mdp is None:
+            return api_response({"status": "error"}, 404, id_user, "2FA activation failed: user not found")
 
-    secret = pyotp.random_base32()
-    totp = pyotp.TOTP(secret)
-    provisioning_url = totp.provisioning_uri(name=str(id_user), issuer_name="YODA")
+        if not is_password_valid(password, mdp["mdp"]):
+            return api_response({"status": "error"}, 401, id_user, "2FA activation failed: bad password")
 
-    qr_code_base64 = generate_qr_code(provisioning_url)
+        secret = pyotp.random_base32()
+        totp = pyotp.TOTP(secret)
+        provisioning_url = totp.provisioning_uri(name=str(id_user), issuer_name="YODA")
 
-    secret_encrypted = aes256_encrypt(secret.encode())
-    
-    if not update_otp_status(secret_encrypted, 1, id_user):
-        return api_response({"status": "error"}, 500, id_user, "2FA activation failed: DB error")
+        qr_code_base64 = generate_qr_code(provisioning_url)
 
-    return api_response({
-        "status": "success",
-        "user": id_user,
-        "url": provisioning_url,
-        "secret": secret,
-        "qrcode": f"data:image/png;base64,{qr_code_base64}",
-    }, 200, id_user, "Activated 2FA")
+        secret_encrypted = aes256_encrypt(secret.encode())
+
+        if not update_otp_status(secret_encrypted, 1, id_user):
+            return api_response({"status": "error"}, 500, id_user, "2FA activation failed: DB error")
+
+        return api_response({
+            "status": "success",
+            "user": id_user,
+            "url": provisioning_url,
+            "secret": secret,
+            "qrcode": f"data:image/png;base64,{qr_code_base64}",
+        }, 200, id_user, "Activated 2FA")
+    except Exception as exc:
+        print(f"ERROR in active_a2f: {exc}")
+        import traceback
+        traceback.print_exc()
+        return api_response({"status": "error", "message": str(exc)}, 500, id_user if 'id_user' in locals() else 0, f"2FA activation failed: {exc}")
     
 @statue_a2f_route.route("/statue_a2f", methods=["GET"])
 def test_a2f():

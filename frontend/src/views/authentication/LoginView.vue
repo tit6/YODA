@@ -73,6 +73,7 @@ const handleSubmit = async () => {
     }
 
     if (!isPasswordValid.value) {
+      authStore.error = 'Le mot de passe doit contenir au minimum 16 caractères, 4 chiffres et 1 caractère spécial'
       return
     }
 
@@ -85,11 +86,9 @@ const handleSubmit = async () => {
     })
 
     if (success) {
-      await authStore.login({ email: email.value, password: password.value })
-
-      if (!authStore.error && authStore.isAuthenticated) {
-        await router.push({path: '/dashboard/documents'})
-      }
+      // Basculer vers l'onglet connexion après l'enregistrement
+      isLogin.value = true
+      submitted.value = false
     }
   }
 }

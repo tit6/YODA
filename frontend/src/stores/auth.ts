@@ -58,16 +58,10 @@ export const useAuthStore = defineStore('auth', {
           credentials: 'include',
         })
 
-        if (!res.ok) {
-          const errorData = await res.json()
-          this.error = errorData.error || 'Erreur lors de l\'enregistrement.'
-          return false
-        }
-
         const responseData = await res.json()
 
-        if (responseData.status === 'error') {
-          this.error = responseData.message || 'Erreur lors de l\'enregistrement.'
+        if (!res.ok || responseData.status === 'error') {
+          this.error = responseData.message || responseData.error || 'Erreur lors de l\'enregistrement.'
           return false
         }
 

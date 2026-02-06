@@ -1,6 +1,6 @@
 from bcrypt import hashpw, gensalt
 
-from module.db import execute_write
+from module.db import execute_write, fetch_one
 from flask import Blueprint, jsonify, request
 
 from module.crypto import verifier_password
@@ -11,6 +11,8 @@ register_bp = Blueprint("register", __name__)
 
 @register_bp.route("/register", methods=["POST"])
 def register():
+    if not request.json:
+        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
 
     name = request.json.get("name")
     prenom = request.json.get("prenom")
@@ -22,25 +24,25 @@ def register():
     if not name or not email or not password:
         return jsonify({"status": "error"}), 400
 
+    # Vérifier si l'email existe déjà
+    existing_user = fetch_one("SELECT id FROM users WHERE email = %s", (email,))
+    if existing_user is not None:
+        return jsonify({"status": "error", "message": "Cet email est déjà utilisé"}), 409
 
-    #bcrypt wait the bytes
-    motdepasse_bytes = password.encode("utf-8")
-    second_password_bytes = second_password.encode("utf-8")
+    # Vérifier que les deux mots de passe correspondent avant le hachage
+    if password != second_password:
+        return jsonify({"status": "error", "message": "Les mots de passe ne correspondent pas"}), 400
 
-    salt = gensalt()
-    # generate salt and hash
-    hash_bytes = hashpw(motdepasse_bytes, salt)
-    second_hash_bytes = hashpw(second_password_bytes, salt)
+    if not verifier_password(password):
+        return jsonify({
+            "status": "error", 
+            "message": "Le mot de passe doit contenir au minimum 16 caractères, 4 chiffres et 1 caractère spécial"
+        }), 401
 
-    # save in utf8 and check password
+    # Hash the password with bcrypt
+    password_bytes = password.encode("utf-8")
+    hash_bytes = hashpw(password_bytes, gensalt())
     hash_str = hash_bytes.decode("utf-8")
-    second_hash_str = second_hash_bytes.decode("utf-8")
-
-    if hash_str != second_hash_str:
-        return jsonify({"status": "error"}), 400
-    
-    if verifier_password(password):
-        return jsonify({"status": "error"}), 401
 
     try:
         rowcount, user_id = execute_write(
@@ -49,5 +51,5 @@ def register():
     
         return jsonify({"status": "success", "user_id": user_id}), 200
     except Exception as exc:
-        return jsonify({"status": "error"}), 500
+        return jsonify({"status": "error", "message": "Erreur lors de l'enregistrement"}), 500
     

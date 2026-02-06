@@ -485,6 +485,116 @@ export const PrivateKeyExport = {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    },
+
+    // Import et déchiffrement de la clé privée
+    importPrivateKey: async (fileContent: string, passphrase: string): Promise<boolean> => {
+        try {
+            // 1. Parse du fichier JSON
+            const importData = JSON.parse(fileContent);
+
+            // Validation du format
+            if (!importData.version || !importData.wrappedPrivateKey || !importData.salt || !importData.iv) {
+                throw new Error("Format de fichier invalide");
+            }
+
+            // 2. Conversion des données base64
+            const wrappedPrivateKey = base64ToArrayBuffer(importData.wrappedPrivateKey);
+            const salt = base64ToArrayBuffer(importData.salt);
+            const iv = base64ToArrayBuffer(importData.iv);
+
+            // 3. Dérivation de la KEK depuis la passphrase
+            const { kek } = await PrivateKeyExport.deriveKeyFromPassphrase(
+                passphrase,
+                new Uint8Array(salt)
+            );
+
+            // 4. Déchiffrement de la clé privée
+            const privateKeyPKCS8 = await crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: new Uint8Array(iv) },
+                kek,
+                wrappedPrivateKey
+            );
+
+            // 5. Import de la clé privée déchiffrée
+            const privateKeyObject = await crypto.subtle.importKey(
+                "pkcs8",
+                privateKeyPKCS8,
+                { name: "RSA-OAEP", hash: "SHA-256" },
+                true,
+                ["decrypt"]
+            );
+
+            // 6. Vérification de l'empreinte de la clé publique (si disponible)
+            if (importData.publicKeyFingerprint) {
+                const privateKeyJWK = await crypto.subtle.exportKey("jwk", privateKeyObject);
+                const publicKeyJWK = { ...privateKeyJWK };
+                delete publicKeyJWK.d;
+                delete publicKeyJWK.p;
+                delete publicKeyJWK.q;
+                delete publicKeyJWK.dp;
+                delete publicKeyJWK.dq;
+                delete publicKeyJWK.qi;
+                publicKeyJWK.key_ops = ["encrypt"];
+
+                const publicKeyObject = await crypto.subtle.importKey(
+                    "jwk",
+                    publicKeyJWK,
+                    { name: "RSA-OAEP", hash: "SHA-256" },
+                    true,
+                    ["encrypt"]
+                );
+
+                const publicKeyBuffer = await crypto.subtle.exportKey("spki", publicKeyObject);
+                const publicKeyHash = await crypto.subtle.digest("SHA-256", publicKeyBuffer);
+                const computedFingerprint = arrayBufferToBase64(publicKeyHash);
+
+                if (computedFingerprint !== importData.publicKeyFingerprint) {
+                    throw new Error("L'empreinte de la clé ne correspond pas");
+                }
+            }
+
+            // 7. Sauvegarde dans IndexedDB
+            const privateKeyJWK = await crypto.subtle.exportKey("jwk", privateKeyObject);
+            await saveKeyToDatabase("privatekey", privateKeyJWK);
+
+            // 8. Sauvegarde de la clé publique au format PEM
+            const privateKeyJWKForPublic = await crypto.subtle.exportKey("jwk", privateKeyObject);
+            const publicKeyJWK = { ...privateKeyJWKForPublic };
+            delete publicKeyJWK.d;
+            delete publicKeyJWK.p;
+            delete publicKeyJWK.q;
+            delete publicKeyJWK.dp;
+            delete publicKeyJWK.dq;
+            delete publicKeyJWK.qi;
+            publicKeyJWK.key_ops = ["encrypt"];
+
+            const publicKeyObject = await crypto.subtle.importKey(
+                "jwk",
+                publicKeyJWK,
+                { name: "RSA-OAEP", hash: "SHA-256" },
+                true,
+                ["encrypt"]
+            );
+
+            const publicKeySpki = await crypto.subtle.exportKey("spki", publicKeyObject);
+            const publicKeyPem = exportPublicKeyToPem(publicKeySpki);
+            await saveKeyToDatabase("publickey_pem", publicKeyPem);
+
+            return true;
+        } catch (error) {
+            console.error("Erreur lors de l'import:", error);
+            throw error;
+        }
     }
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
 }
 
