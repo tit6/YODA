@@ -262,6 +262,7 @@ def download_shared_document():
         "email": "email_de_la_personne"
     }
     """
+
     try:
         data = request.get_json(silent=True) or {}
         
@@ -271,7 +272,7 @@ def download_shared_document():
             return api_response({"status": "error", "message": "Paramètres manquants"}, 400, None, "Share download missing parameters")
         
         name = fetch_one(
-            "SELECT id_owner, name_document, destination_email, views_count, max_views, expires_at, is_active FROM shared_files WHERE token = %s",
+            "SELECT id, id_owner, name_document, destination_email, views_count, max_views, expires_at, is_active FROM shared_files WHERE token = %s",
             (token,),
         )
         if name is None:
@@ -285,6 +286,7 @@ def download_shared_document():
         uses = name["views_count"]
         expires_at = name["expires_at"]
         is_active = name["is_active"]
+        id_shared_file = name["id"]
 
         if max_uses is not None and uses >= max_uses:
             return api_response({"status": "error", "message": "Nombre maximum de téléchargements atteint"}, 403, None, "Share download denied: max views reached")
@@ -330,6 +332,19 @@ def download_shared_document():
             "UPDATE shared_files SET views_count = views_count + 1 WHERE token = %s",
             (token,),
         )
+
+        #mettre les user agend et ip du mec dans les logs des accées de partage
+        user_agent = request.headers.get("User-Agent")
+        ip_address = request.remote_addr
+        
+
+        print(f"[INFO] Shared document accessed: id_shared_file={id_shared_file}, ip_address={ip_address}, user_agent={user_agent}")
+        rowcount, t = execute_write(
+            "INSERT INTO shared_acces_log (id_shared_file, accessed_at, ip_address, user_agent) VALUES (%s, %s, %s, %s)",
+            (id_shared_file, datetime.utcnow(), str(ip_address), str(user_agent))
+        )
+
+
         return response
         
 

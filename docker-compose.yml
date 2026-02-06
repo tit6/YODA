@@ -4,7 +4,7 @@ services:
     build: ./database
     container_name: yoda-database
     ports:
-      - "3306"
+      - "3306:3306"
     env_file:
       - .env
     volumes:
