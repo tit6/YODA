@@ -11,6 +11,8 @@ register_bp = Blueprint("register", __name__)
 
 @register_bp.route("/register", methods=["POST"])
 def register():
+    if not request.json:
+        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
 
     name = request.json.get("name")
     prenom = request.json.get("prenom")
@@ -29,19 +31,18 @@ def register():
 
     # Vérifier que les deux mots de passe correspondent avant le hachage
     if password != second_password:
-        return jsonify({"status": "error"}), 400
+        return jsonify({"status": "error", "message": "Les mots de passe ne correspondent pas"}), 400
 
-    #bcrypt wait the bytes
-    motdepasse_bytes = password.encode("utf-8")
+    if not verifier_password(password):
+        return jsonify({
+            "status": "error", 
+            "message": "Le mot de passe doit contenir au minimum 16 caractères, 4 chiffres et 1 caractère spécial"
+        }), 401
 
-    # generate salt and hash (bcrypt génère automatiquement le salt)
-    hash_bytes = hashpw(motdepasse_bytes, gensalt())
-
-    # save in utf8
+    # Hash the password with bcrypt
+    password_bytes = password.encode("utf-8")
+    hash_bytes = hashpw(password_bytes, gensalt())
     hash_str = hash_bytes.decode("utf-8")
-    
-    if verifier_password(password):
-        return jsonify({"status": "error"}), 401
 
     try:
         rowcount, user_id = execute_write(
@@ -50,5 +51,5 @@ def register():
     
         return jsonify({"status": "success", "user_id": user_id}), 200
     except Exception as exc:
-        return jsonify({"status": "error"}), 500
+        return jsonify({"status": "error", "message": "Erreur lors de l'enregistrement"}), 500
     

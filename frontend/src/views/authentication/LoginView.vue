@@ -73,6 +73,7 @@ const handleSubmit = async () => {
     }
 
     if (!isPasswordValid.value) {
+      authStore.error = 'Le mot de passe doit contenir au minimum 16 caractères, 4 chiffres et 1 caractère spécial'
       return
     }
 
