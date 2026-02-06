@@ -491,6 +491,7 @@ docker compose up -d
 
 - [ ] Intégration VirusTotal pour scan des fichiers
 - [ ] API HIBP pour vérification des mots de passe compromis
+- [ ] Dashboard administrateur
 - [ ] Export d'audit logs
 - [ ] Recovery codes pour 2FA
 
