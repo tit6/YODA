@@ -15,7 +15,7 @@ def login():
 
     banned_ip = fetch_one("SELECT attempts, last_attempt FROM failed_login_attempts WHERE ip = %s", (request.remote_addr,))
 
-    if banned_ip and banned_ip["attempts"] >= 5:
+    if banned_ip and banned_ip["attempts"] >= 5: # check si le ban date de plus de 5 minutes
         if banned_ip["last_attempt"] < datetime.now() - timedelta(minutes=5):
             execute_write("DELETE FROM failed_login_attempts WHERE ip = %s", (request.remote_addr,))
         else:
