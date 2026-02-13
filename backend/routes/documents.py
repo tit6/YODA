@@ -5,6 +5,7 @@ from flask import Blueprint, request, send_file, g
 
 from module.api_retour import api_response
 from module.db import execute_write, fetch_all, fetch_one
+from module.folder import build_breadcrumb, get_folder, list_child_folders
 from module.minio_client import upload_file, download_file, delete_file
 
 documents_bp = Blueprint("documents", __name__)
@@ -44,9 +45,31 @@ def upload_document():
         dek_encrypted = data.get("dek_encrypted")
         iv = data.get("iv")
         sha256 = data.get("sha256")
+        folder_id_raw = data.get("folder_id")
 
         if not all([file_name, file_data_b64, dek_encrypted, iv, sha256]):
             return api_response({"status": "error", "message": "Paramètres manquants"}, 400, user_id, "Upload failed: missing parameters")
+
+        folder_id = None
+        if folder_id_raw not in (None, "", 0, "0", "null", "root"):
+            try:
+                folder_id = int(folder_id_raw)
+            except (TypeError, ValueError):
+                return api_response(
+                    {"status": "error", "message": "folder_id invalide"},
+                    400,
+                    user_id,
+                    "Upload failed: invalid folder_id",
+                )
+
+            # anti "saut" : le dossier doit appartenir au user
+            if get_folder(int(user_id), folder_id) is None:
+                return api_response(
+                    {"status": "error", "message": "Dossier introuvable ou non autorisé"},
+                    403,
+                    user_id,
+                    "Upload denied: folder not found",
+                )
 
         # Décoder le fichier chiffré depuis base64
         import base64
@@ -61,7 +84,7 @@ def upload_document():
         try:
             execute_write(
                 "INSERT INTO documents (id_users, id_folder, nom_original, extension, taille_octets, object_name, dek_encrypted, iv, sha256) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (user_id, None, file_name, extension, file_size, object_name, dek_encrypted, iv, sha256),
+                (user_id, folder_id, file_name, extension, file_size, object_name, dek_encrypted, iv, sha256),
             )
         except Exception:
             try:
@@ -101,11 +124,42 @@ def list_documents():
         if not user_id:
             return api_response({"status": "error", "message": "ID utilisateur manquant"}, 401, None, "List failed: missing user ID")
 
-        # Récupérer la liste des documents depuis la base
-        rows = fetch_all(
-            "SELECT object_name, nom_original, taille_octets, created_at, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s ORDER BY created_at DESC",
-            (user_id,),
-        )
+        folder_id_param = request.args.get("folder_id")
+        folder_id = None
+        if folder_id_param not in (None, "", "null", "root", "0"):
+            try:
+                folder_id = int(folder_id_param)
+            except (TypeError, ValueError):
+                return api_response(
+                    {"status": "error", "message": "folder_id invalide"},
+                    400,
+                    user_id,
+                    "List failed: invalid folder_id",
+                )
+
+            # anti "saut": le dossier doit appartenir au user
+            if get_folder(int(user_id), folder_id) is None:
+                return api_response(
+                    {"status": "error", "message": "Dossier introuvable ou non autorisé"},
+                    403,
+                    user_id,
+                    "List denied: folder not found",
+                )
+
+        # Récupérer la liste des documents depuis la base (par dossier)
+        if folder_id is None:
+            rows = fetch_all(
+                "SELECT object_name, nom_original, taille_octets, created_at, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s AND id_folder IS NULL ORDER BY created_at DESC",
+                (user_id,),
+            )
+        else:
+            rows = fetch_all(
+                "SELECT object_name, nom_original, taille_octets, created_at, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s AND id_folder = %s ORDER BY created_at DESC",
+                (user_id, folder_id),
+            )
+
+        folders = list_child_folders(int(user_id), folder_id)
+        breadcrumb = build_breadcrumb(int(user_id), folder_id)
 
         # Formater la réponse
         documents = []
@@ -131,7 +185,9 @@ def list_documents():
             "status": "success",
             "data": {
                 "documents": documents,
-                "count": len(documents)
+                "folders": folders,
+                "breadcrumb": breadcrumb,
+                "count": len(documents),
             }
         }, 200, user_id, "Documents listed")
 
