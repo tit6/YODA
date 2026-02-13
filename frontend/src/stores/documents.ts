@@ -11,21 +11,39 @@ export interface Document {
   sha256: string
 }
 
+export interface Folder {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface BreadcrumbItem {
+  id: number
+  name: string
+}
+
 export const useDocumentsStore = defineStore('documents', {
   state: () => ({
     documents: [] as Document[],
+    folders: [] as Folder[],
+    breadcrumb: [] as BreadcrumbItem[],
+    currentFolderId: null as number | null,
     loading: false,
     error: ''
   }),
 
   actions: {
-    async fetchDocuments() {
+    async fetchDocuments(folderId: number | null = null) {
       this.loading = true
       this.error = ''
+      this.currentFolderId = folderId
 
       try {
         const authStore = useAuthStore()
-        const response = await fetch('/api/documents/list', {
+        const url = folderId !== null
+          ? `/api/documents/list?folder_id=${folderId}`
+          : '/api/documents/list'
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,
@@ -40,6 +58,8 @@ export const useDocumentsStore = defineStore('documents', {
         const data = await response.json()
         if (data.status === 'success') {
           this.documents = data.data.documents
+          this.folders = data.data.folders || []
+          this.breadcrumb = data.data.breadcrumb || []
         } else {
           this.error = data.message || 'Erreur inconnue'
         }
@@ -51,12 +71,83 @@ export const useDocumentsStore = defineStore('documents', {
       }
     },
 
+    async createFolder(name: string, parentId: number | null = null) {
+      this.loading = true
+      this.error = ''
+
+      try {
+        const authStore = useAuthStore()
+        const response = await fetch('/api/documents/folders/create', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, parent_id: parentId })
+        })
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la création du dossier')
+        }
+
+        const data = await response.json()
+        if (data.status === 'success') {
+          await this.fetchDocuments(this.currentFolderId)
+          return true
+        } else {
+          this.error = data.message || 'Erreur inconnue'
+          return false
+        }
+      } catch (err) {
+        this.error = String(err)
+        console.error('Erreur createFolder:', err)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteFolder(folderId: number) {
+      this.loading = true
+      this.error = ''
+
+      try {
+        const authStore = useAuthStore()
+        const response = await fetch(`/api/documents/folders/delete/${folderId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la suppression du dossier')
+        }
+
+        const data = await response.json()
+        if (data.status === 'success') {
+          await this.fetchDocuments(this.currentFolderId)
+          return true
+        } else {
+          this.error = data.message || 'Erreur inconnue'
+          return false
+        }
+      } catch (err) {
+        this.error = String(err)
+        console.error('Erreur deleteFolder:', err)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
     async uploadDocument(payload: {
       file_name: string
       file_data: string
       dek_encrypted: string
       iv: string
       sha256: string
+      folder_id?: number | null
     }) {
       this.loading = true
       this.error = ''
@@ -79,7 +170,7 @@ export const useDocumentsStore = defineStore('documents', {
         const data = await response.json()
         if (data.status === 'success') {
           // Rafraîchir la liste
-          await this.fetchDocuments()
+          await this.fetchDocuments(this.currentFolderId)
           return true
         } else {
           this.error = data.message || 'Erreur inconnue'
@@ -140,7 +231,7 @@ export const useDocumentsStore = defineStore('documents', {
 
         if (data?.status === 'success') {
           // Rafraîchir la liste
-          await this.fetchDocuments()
+          await this.fetchDocuments(this.currentFolderId)
           return data
         } else {
           this.error = data?.message || 'Erreur inconnue'
@@ -224,7 +315,7 @@ export const useDocumentsStore = defineStore('documents', {
         const data = await response.json()
         if (data.status === 'success') {
           // Rafraîchir la liste
-          await this.fetchDocuments()
+          await this.fetchDocuments(this.currentFolderId)
           return true
         } else {
           this.error = data.message || 'Erreur inconnue'
@@ -237,6 +328,10 @@ export const useDocumentsStore = defineStore('documents', {
       } finally {
         this.loading = false
       }
+    },
+
+    navigateToFolder(folderId: number | null) {
+      this.fetchDocuments(folderId)
     }
   }
 })

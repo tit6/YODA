@@ -24,7 +24,7 @@ CREATE TABLE `logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `id_users` int NOT NULL,
   `statut` int NOT NULL,
-  `action` varchar(100) NOT NULL,
+  `action` varchar(255) NOT NULL,
   `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `ip` VARCHAR(100) NOT NULL,
   PRIMARY KEY (`id`),

@@ -7,5 +7,5 @@ def api_response(data, status, id_user, log_message):
         forwarded_for = request.headers.get("X-Forwarded-For", "")
         client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else request.remote_addr
     if id_user is not None and log_message is not None:
-        update_logs(id_user, status, log_message, client_ip)
+        update_logs(id_user, status, log_message[:150], client_ip)
     return jsonify(data), status

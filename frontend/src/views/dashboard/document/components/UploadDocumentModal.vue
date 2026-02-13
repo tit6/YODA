@@ -6,6 +6,7 @@ import { calculateSHA256InChunks, encryptFileInChunks, blobToBase64InChunks} fro
 
 const props = defineProps<{
   show: boolean
+  folderId?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -137,7 +138,8 @@ async function handleUpload() {
       file_data: fileDataB64,
       dek_encrypted: dekEncrypted,
       iv: arrayBufferToBase64(iv),
-      sha256: sha256
+      sha256: sha256,
+      folder_id: props.folderId ?? null
     })
 
     if (success) {
