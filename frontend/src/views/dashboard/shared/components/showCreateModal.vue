@@ -69,7 +69,7 @@ const createShare = async () => {
 const documentsStore = useDocumentsStore()
 
 onMounted(async () => {
-  await documentsStore.fetchDocuments()
+  await documentsStore.fetchAllDocuments()
 })
 
 const shareCryptoStore = useShareCryptoStore()
@@ -91,7 +91,7 @@ const shareCryptoStore = useShareCryptoStore()
                 :key="doc.object_name"
                 :value="doc.object_name"
               >
-                {{ doc.file_name }}
+                {{ doc.folder_name ? `📁 ${doc.folder_name} / ${doc.file_name}` : doc.file_name }}
               </option>
               <option
                 v-if="!documentsStore.loading && documentsStore.documents.length === 0"

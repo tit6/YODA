@@ -9,6 +9,7 @@ export interface Document {
   dek_encrypted: string
   iv: string
   sha256: string
+  folder_name?: string | null
 }
 
 export interface Folder {
@@ -66,6 +67,40 @@ export const useDocumentsStore = defineStore('documents', {
       } catch (err) {
         this.error = String(err)
         console.error('Erreur fetchDocuments:', err)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchAllDocuments() {
+      this.loading = true
+      this.error = ''
+
+      try {
+        const authStore = useAuthStore()
+        const response = await fetch('/api/documents/list?all=true', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des documents')
+        }
+
+        const data = await response.json()
+        if (data.status === 'success') {
+          this.documents = data.data.documents
+          this.folders = []
+          this.breadcrumb = []
+        } else {
+          this.error = data.message || 'Erreur inconnue'
+        }
+      } catch (err) {
+        this.error = String(err)
+        console.error('Erreur fetchAllDocuments:', err)
       } finally {
         this.loading = false
       }

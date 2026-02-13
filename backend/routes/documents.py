@@ -124,9 +124,12 @@ def list_documents():
         if not user_id:
             return api_response({"status": "error", "message": "ID utilisateur manquant"}, 401, None, "List failed: missing user ID")
 
+        # Paramètre all=true pour lister tous les documents (toutes les dossiers)
+        fetch_all_docs = request.args.get("all", "").lower() in ("true", "1")
+
         folder_id_param = request.args.get("folder_id")
         folder_id = None
-        if folder_id_param not in (None, "", "null", "root", "0"):
+        if not fetch_all_docs and folder_id_param not in (None, "", "null", "root", "0"):
             try:
                 folder_id = int(folder_id_param)
             except (TypeError, ValueError):
@@ -146,20 +149,30 @@ def list_documents():
                     "List denied: folder not found",
                 )
 
-        # Récupérer la liste des documents depuis la base (par dossier)
-        if folder_id is None:
+        # Récupérer la liste des documents depuis la base
+        if fetch_all_docs:
+            rows = fetch_all(
+                "SELECT d.object_name, d.nom_original, d.taille_octets, d.created_at, d.dek_encrypted, d.iv, d.sha256, d.id_folder, f.nom AS folder_name "
+                "FROM documents d LEFT JOIN folders f ON d.id_folder = f.id "
+                "WHERE d.id_users = %s ORDER BY d.created_at DESC",
+                (user_id,),
+            )
+            folders = []
+            breadcrumb = []
+        elif folder_id is None:
             rows = fetch_all(
                 "SELECT object_name, nom_original, taille_octets, created_at, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s AND id_folder IS NULL ORDER BY created_at DESC",
                 (user_id,),
             )
+            folders = list_child_folders(int(user_id), folder_id)
+            breadcrumb = build_breadcrumb(int(user_id), folder_id)
         else:
             rows = fetch_all(
                 "SELECT object_name, nom_original, taille_octets, created_at, dek_encrypted, iv, sha256 FROM documents WHERE id_users = %s AND id_folder = %s ORDER BY created_at DESC",
                 (user_id, folder_id),
             )
-
-        folders = list_child_folders(int(user_id), folder_id)
-        breadcrumb = build_breadcrumb(int(user_id), folder_id)
+            folders = list_child_folders(int(user_id), folder_id)
+            breadcrumb = build_breadcrumb(int(user_id), folder_id)
 
         # Formater la réponse
         documents = []
@@ -171,7 +184,7 @@ def list_documents():
                 last_modified = created_at.isoformat()
             else:
                 last_modified = str(created_at)
-            documents.append({
+            doc_entry = {
                 "object_name": row["object_name"],
                 "file_name": row["nom_original"],
                 "size": row["taille_octets"],
@@ -179,7 +192,10 @@ def list_documents():
                 "dek_encrypted": row["dek_encrypted"],
                 "iv": row["iv"],
                 "sha256": row["sha256"]
-            })
+            }
+            if fetch_all_docs:
+                doc_entry["folder_name"] = row.get("folder_name")
+            documents.append(doc_entry)
 
         return api_response({
             "status": "success",
