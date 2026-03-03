@@ -30,7 +30,9 @@ def upload_document_shared():
     """
     try:
         # Récupérer l'utilisateur depuis g (déjà décodé par le middleware)
-        user_id = g.user.get("id")
+        user_id = g.user.get("id") if g.user else None
+        if not user_id:
+            return api_response({"status": "error", "message": "Non authentifié"}, 401, None, "Share upload failed: not authenticated")
 
         # Récupérer les données du formulaire
         data = request.get_json()
@@ -44,6 +46,7 @@ def upload_document_shared():
         sha256 = data.get("sha256")
         #email du destinatere
         email = data.get("email")
+        recipient_user_id_raw = data.get("recipient_user_id")
         time = data.get("time")
         number_of_accesses = data.get("number_of_accesses")
         source_object_name = data.get("source_object_name")
@@ -58,6 +61,22 @@ def upload_document_shared():
         file_data = base64.b64decode(file_data_b64)
 
         file_size = len(file_data)
+
+        recipient_user_id = None
+        if recipient_user_id_raw not in (None, "", 0, "0", "null"):
+            try:
+                recipient_user_id = int(recipient_user_id_raw)
+            except (TypeError, ValueError):
+                return api_response({"status": "error", "message": "recipient_user_id invalide"}, 400, user_id, "Share upload failed: invalid recipient_user_id")
+            if int(recipient_user_id) == int(user_id):
+                return api_response({"status": "error", "message": "Impossible de partager avec vous-même"}, 400, user_id, "Share upload failed: self share")
+
+            recipient_row = fetch_one("SELECT id, email FROM users WHERE id = %s", (recipient_user_id,))
+            if recipient_row is None:
+                return api_response({"status": "error", "message": "Utilisateur destinataire introuvable"}, 404, user_id, "Share upload failed: recipient not found")
+            # Pour compatibilité avec /share/download (qui valide destination_email),
+            # on stocke l'email du user destinataire.
+            email = recipient_row.get("email")
 
         if time is None:
             return api_response({"status": "error", "message": "Durée manquante"}, 400, user_id, "Upload failed: missing time")
@@ -97,9 +116,32 @@ def upload_document_shared():
 
             
         try:
-            rowcount, t = execute_write(
+            rowcount, shared_file_id = execute_write(
                 "INSERT INTO shared_files (name_document, id_owner, id_document, object_name, taille_octets, token, SEK, iv, sha256, destination_email, expires_at, max_views) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (file_name, user_id, document_id, object_name, file_size, token, dek_encrypted, iv, sha256, email, expires_at, number_of_accesses))
+
+            if recipient_user_id is not None:
+                try:
+                    execute_write(
+                        "INSERT INTO shared_files_users (id_shared_file, id_user) VALUES (%s, %s)",
+                        (int(shared_file_id), int(recipient_user_id)),
+                    )
+                except Exception as exc:
+                    print(f"[ERROR] Insert shared_files_users: {exc}")
+                    # Best-effort cleanup: leave the share in DB if cleanup fails.
+                    try:
+                        execute_write(
+                            "DELETE FROM shared_files WHERE id = %s AND id_owner = %s",
+                            (int(shared_file_id), int(user_id)),
+                        )
+                    except Exception as cleanup_exc:
+                        print(f"[ERROR] Cleanup shared_files after shared_files_users failure: {cleanup_exc}")
+                    return api_response(
+                        {"status": "error", "message": "Erreur lors de l'association du partage à l'utilisateur"},
+                        500,
+                        user_id,
+                        "Share upload failed: shared_files_users insert failed",
+                    )
 
             return jsonify({"status": "success", "token": token}), 200
         except Exception as exc:
@@ -178,6 +220,83 @@ def list_documents():
     except Exception as e:
         print(f"[ERROR] List documents: {e}")
         return api_response({"status": "error", "message": f"Erreur lors de la récupération: {str(e)}"}, 500, user_id, f"List error: {str(e)}")
+
+
+@share.route("/share/received", methods=["GET"])
+def list_received_documents():
+    """
+    Liste les partages internes reçus par l'utilisateur (partages créés via shared_files_users).
+    """
+    user_id = None
+    try:
+        if not g.user:
+            return api_response({"status": "error", "message": "Non authentifié"}, 401, None, "Share received list failed: not authenticated")
+
+        user_id = g.user.get("id")
+        if not user_id:
+            return api_response({"status": "error", "message": "ID utilisateur manquant"}, 401, None, "Share received list failed: missing user ID")
+
+        rows = fetch_all(
+            "SELECT sf.id, sf.object_name, sf.name_document, sf.taille_octets, sf.destination_email, sf.created_at, sf.expires_at, "
+            "sf.max_views, sf.views_count, sf.is_active, sf.token, sf.SEK AS dek_encrypted, sf.iv, sf.sha256, "
+            "u.nom AS owner_nom, u.prenom AS owner_prenom, u.email AS owner_email "
+            "FROM shared_files sf "
+            "JOIN shared_files_users sfu ON sfu.id_shared_file = sf.id "
+            "JOIN users u ON u.id = sf.id_owner "
+            "WHERE sfu.id_user = %s "
+            "ORDER BY sf.created_at DESC",
+            (user_id,),
+        )
+
+        documents = []
+        for row in rows:
+            created_at = row.get("created_at")
+            if created_at is None:
+                last_modified = None
+            elif hasattr(created_at, "isoformat"):
+                last_modified = created_at.isoformat()
+            else:
+                last_modified = str(created_at)
+
+            expires_at = row.get("expires_at")
+            if expires_at is None:
+                expires_at_value = None
+            elif hasattr(expires_at, "isoformat"):
+                expires_at_value = expires_at.isoformat()
+            else:
+                expires_at_value = str(expires_at)
+
+            documents.append(
+                {
+                    "id": row["id"],
+                    "object_name": row["object_name"],
+                    "file_name": row["name_document"],
+                    "size": row["taille_octets"],
+                    "last_modified": last_modified,
+                    "dek_encrypted": row["dek_encrypted"],
+                    "iv": row["iv"],
+                    "sha256": row["sha256"],
+                    "destination_email": row.get("destination_email"),
+                    "expires_at": expires_at_value,
+                    "is_active": row["is_active"],
+                    "max_views": row.get("max_views"),
+                    "views_count": row.get("views_count"),
+                    "token": row.get("token"),
+                    "owner_nom": row.get("owner_nom"),
+                    "owner_prenom": row.get("owner_prenom"),
+                    "owner_email": row.get("owner_email"),
+                }
+            )
+
+        return api_response(
+            {"status": "success", "data": {"documents": documents, "count": len(documents)}},
+            200,
+            user_id,
+            "Received shares listed",
+        )
+    except Exception as e:
+        print(f"[ERROR] List received shares: {e}")
+        return api_response({"status": "error", "message": f"Erreur lors de la récupération: {str(e)}"}, 500, user_id, f"Received list error: {str(e)}")
 
 
 @share.route("/share/switch", methods=["POST"])

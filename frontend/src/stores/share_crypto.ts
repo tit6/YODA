@@ -143,6 +143,108 @@ export const useShareCryptoStore = defineStore('share_crypto', {
         finally {
             this.loading = false
         }
+    },
+
+    async share_document_to_user(document_name: string, recipient_user_id: number, time: string, number_of_accesses: number | null, password: string) {
+      this.loading = true
+      this.error = ''
+      try {
+        const documentsStore = useDocumentsStore()
+
+        const result = await documentsStore.downloadDocument(document_name)
+        if (!result) {
+          return
+        }
+
+        // Déchiffrer la DEK avec la clé privée
+        const privateKeyJWK = await PrivateKey.GetPrivateKey()
+        const privateKey = await crypto.subtle.importKey(
+          "jwk",
+          privateKeyJWK,
+          { name: "RSA-OAEP", hash: "SHA-256" },
+          false,
+          ["decrypt"]
+        )
+
+        const dekEncryptedBytes = Uint8Array.from(atob(result.dekEncrypted), c => c.charCodeAt(0))
+        const dekRaw = await crypto.subtle.decrypt(
+          { name: "RSA-OAEP" },
+          privateKey,
+          dekEncryptedBytes
+        )
+
+        const dek = await crypto.subtle.importKey(
+          "raw",
+          dekRaw,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["decrypt"]
+        )
+
+        const iv = Uint8Array.from(atob(result.iv), c => c.charCodeAt(0))
+
+        const decryptedBlob = await decryptFileInChunks(
+          result.blob,
+          dek,
+          iv
+        )
+
+        const decryptedFile = new File(
+          [decryptedBlob],
+          result.fileName,
+          { type: result.blob.type || 'application/octet-stream' }
+        )
+
+        const newDek = await DEK.GenerateDek()
+        const newIv = crypto.getRandomValues(new Uint8Array(12))
+
+        const encryptedBlob = await encryptFileInChunks(
+          decryptedFile,
+          newDek,
+          newIv
+        )
+
+        const newDekRaw = await crypto.subtle.exportKey("raw", newDek)
+        const passwordValue = password?.trim()
+        let dekPayload = ''
+
+        if (passwordValue) {
+          const { kek } = await PrivateKeyExport.deriveKeyFromPassphrase(passwordValue, newIv)
+          const wrappedDek = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: newIv },
+            kek,
+            newDekRaw
+          )
+          dekPayload = arrayBufferToBase64(wrappedDek)
+        } else {
+          dekPayload = arrayBufferToBase64(newDekRaw)
+        }
+
+        const newIvBase64 = arrayBufferToBase64(newIv)
+
+        const fileDataB64 = await blobToBase64InChunks(encryptedBlob)
+        const uploadResult = await documentsStore.uploadDocument_shared({
+          file_name: result.fileName,
+          file_data: fileDataB64,
+          dek_encrypted: dekPayload,
+          iv: newIvBase64,
+          sha256: result.sha256,
+          time: time,
+          number_of_accesses: number_of_accesses,
+          source_object_name: document_name,
+          recipient_user_id: recipient_user_id,
+        })
+        if (!uploadResult) {
+          throw new Error(documentsStore.error || 'Erreur lors de l\'upload')
+        }
+
+        return uploadResult.token
+      } catch (err) {
+        this.error = String(err)
+        console.error('Erreur createShare(to user):', err)
+      } finally {
+        this.loading = false
+      }
     }
   }
 })

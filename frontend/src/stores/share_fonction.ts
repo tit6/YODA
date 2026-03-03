@@ -17,6 +17,19 @@ export interface SharedDocument {
   status: string
 }
 
+export interface ReceivedShare {
+  id: string
+  documentName: string
+  owner: string
+  createdAt: string
+  expiresAt: string
+  token?: string
+  link: string
+  maxAccess?: number
+  view_count?: number
+  status: string
+}
+
 export interface SharedDocumentApi {
   id: number
   object_name: string
@@ -34,6 +47,12 @@ export interface SharedDocumentApi {
   sha256?: string
 }
 
+export interface ReceivedShareApi extends SharedDocumentApi {
+  owner_email?: string
+  owner_nom?: string
+  owner_prenom?: string
+}
+
 export interface CreateSharePayload {
   documentName: string
   recipient: string
@@ -48,6 +67,7 @@ export interface CreateSharePayload {
 export const useShareFonctionStore = defineStore('share_fonction', {
   state: () => ({
     sharedDocuments: [] as SharedDocument[],
+    receivedShares: [] as ReceivedShare[],
     loading: false,
     error: '',
     generatedLink: '',
@@ -156,6 +176,56 @@ export const useShareFonctionStore = defineStore('share_fonction', {
       }
     },
 
+    async fetchReceivedShares() {
+      this.loading = true
+      this.error = ''
+
+      try {
+        const authStore = useAuthStore()
+        const response = await fetch('/api/share/received', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+        if (data.status !== 'success') {
+          throw new Error(data.message || 'Erreur inconnue')
+        }
+
+        const documents = (data.data?.documents || []) as ReceivedShareApi[]
+        this.receivedShares = documents.map((doc) => {
+          const ownerLabel = doc.owner_email
+            ? doc.owner_email
+            : [doc.owner_prenom, doc.owner_nom].filter(Boolean).join(' ').trim() || '-'
+
+          return {
+            id: String(doc.id),
+            documentName: doc.file_name,
+            owner: ownerLabel,
+            createdAt: this.formatDate(doc.last_modified),
+            expiresAt: this.formatDate(doc.expires_at),
+            token: doc.token,
+            link: this.buildShareLink(doc.token),
+            maxAccess: doc.max_views,
+            view_count: doc.views_count ?? 0,
+            status: doc.is_active ? '0' : '1'
+          }
+        })
+      } catch (err) {
+        this.error = String(err)
+        console.error('Erreur fetchReceivedShares:', err)
+      } finally {
+        this.loading = false
+      }
+    },
+
     filterDocuments(query: string) {
       const normalized = query.trim().toLowerCase()
       if (!normalized) return this.sharedDocuments
@@ -163,6 +233,16 @@ export const useShareFonctionStore = defineStore('share_fonction', {
       return this.sharedDocuments.filter(doc =>
         doc.documentName.toLowerCase().includes(normalized) ||
         doc.recipient.toLowerCase().includes(normalized)
+      )
+    },
+
+    filterReceivedShares(query: string) {
+      const normalized = query.trim().toLowerCase()
+      if (!normalized) return this.receivedShares
+
+      return this.receivedShares.filter(share =>
+        share.documentName.toLowerCase().includes(normalized) ||
+        share.owner.toLowerCase().includes(normalized)
       )
     },
 

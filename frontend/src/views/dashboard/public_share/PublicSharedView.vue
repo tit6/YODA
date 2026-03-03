@@ -21,7 +21,7 @@ const downloading = ref(false)
 const downloadError = ref('')
 
 const canSubmit = computed(() => {
-  return Boolean(email.value.trim()) && password.value.length > 0
+  return Boolean(token.value) && Boolean(email.value.trim())
 })
 
 const placeholderText = computed(() => {
@@ -220,14 +220,13 @@ watch(token, (value) => {
         </div>
 
         <div class="input-group">
-          <label for="share-password">Mot de passe</label>
+          <label for="share-password">Mot de passe (si nécessaire)</label>
           <input
             id="share-password"
             v-model="password"
             type="password"
             placeholder="Mot de passe du partage"
             autocomplete="current-password"
-            required
           />
         </div>
 

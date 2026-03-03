@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS `shared_files_users`;
+DROP TABLE IF EXISTS `shared_acces_log`;
+DROP TABLE IF EXISTS `shared_files`;
+DROP TABLE IF EXISTS `failed_login_attempts`;
 DROP TABLE IF EXISTS `documents`;
 DROP TABLE IF EXISTS `folders`;
 DROP TABLE IF EXISTS `logs`;
@@ -105,7 +109,23 @@ CREATE TABLE `shared_files` (
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6)  shared file
+-- 6) mapping partages -> users (partage interne à un membre du site)
+CREATE TABLE `shared_files_users` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `id_shared_file` INT NOT NULL,
+  `id_user` INT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_shared_files_users` (`id_shared_file`, `id_user`),
+  KEY `idx_shared_files_users_user` (`id_user`),
+  KEY `idx_shared_files_users_share` (`id_shared_file`),
+  CONSTRAINT `fk_shared_files_users_share`
+    FOREIGN KEY (`id_shared_file`) REFERENCES `shared_files` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_shared_files_users_user`
+    FOREIGN KEY (`id_user`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 7) shared access log
 CREATE TABLE `shared_acces_log` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `id_shared_file` INT NOT NULL,   -- référence au fichier partagé
@@ -118,7 +138,7 @@ CREATE TABLE `shared_acces_log` (
     FOREIGN KEY (`id_shared_file`) REFERENCES `shared_files` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 7) failed login attempts
+-- 8) failed login attempts
 CREATE TABLE `failed_login_attempts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `ip` VARCHAR(100) NOT NULL,
@@ -129,4 +149,3 @@ CREATE TABLE `failed_login_attempts` (
 
 -- données de test
 INSERT INTO users VALUES (1,'admin', 'prenom','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0, 'Null');
-

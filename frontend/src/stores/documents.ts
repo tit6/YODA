@@ -227,6 +227,7 @@ export const useDocumentsStore = defineStore('documents', {
       iv: string
       sha256: string
       email?: string
+      recipient_user_id?: number
       time?: string
       number_of_accesses?: number | null
       source_object_name?: string

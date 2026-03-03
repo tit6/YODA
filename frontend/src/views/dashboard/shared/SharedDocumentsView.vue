@@ -3,19 +3,146 @@ import { ref, computed, onMounted } from 'vue'
 import ShowCreateModal from './components/showCreateModal.vue'
 import ShowLinkModal from './components/showLinkModal.vue'
 import { useShareFonctionStore } from '@/stores/share_fonction'
+import { useAuthStore } from '@/stores/auth'
+import { PrivateKeyExport } from '@/stores/crypto'
+import { decryptFileInChunks } from '@/utils/fileEncryption'
 
 const shareStore = useShareFonctionStore()
+const authStore = useAuthStore()
 const searchQuery = ref('')
+const activeTab = ref<'sent' | 'received'>('sent')
 
-const filteredDocuments = computed(() => shareStore.filterDocuments(searchQuery.value))
+const filteredSent = computed(() => shareStore.filterDocuments(searchQuery.value))
+const filteredReceived = computed(() => shareStore.filterReceivedShares(searchQuery.value))
+
+const extractFileName = (headers: Headers, fallback = 'document') => {
+  const contentDisposition = headers.get('Content-Disposition') || ''
+  const match = /filename\*?=(?:UTF-8''|\"?)([^\";]+)/i.exec(contentDisposition)
+  if (match && match[1]) {
+    try {
+      return decodeURIComponent(match[1])
+    } catch (err) {
+      return match[1]
+    }
+  }
+  return fallback
+}
+
+const base64ToBytes = (value: string) => {
+  return Uint8Array.from(atob(value), (c) => c.charCodeAt(0))
+}
+
+const resolveDekKey = async (dekPayload: string, ivBytes: Uint8Array, passphrase: string) => {
+  const rawBytes = base64ToBytes(dekPayload)
+  if (rawBytes.byteLength === 32) {
+    return crypto.subtle.importKey(
+      'raw',
+      rawBytes,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    )
+  }
+
+  if (!passphrase) {
+    throw new Error('Mot de passe requis pour déchiffrer.')
+  }
+
+  const { kek } = await PrivateKeyExport.deriveKeyFromPassphrase(passphrase, ivBytes)
+  const dekRaw = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: ivBytes },
+    kek,
+    rawBytes
+  )
+
+  return crypto.subtle.importKey(
+    'raw',
+    dekRaw,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  )
+}
+
+const downloadReceivedShare = async (token?: string) => {
+  if (!token) {
+    alert('Token manquant')
+    return
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token) {
+      headers.Authorization = `Bearer ${authStore.token}`
+    }
+
+    const response = await fetch('/api/share/download', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        token,
+        email: authStore.email
+      })
+    })
+
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const data = await response.json()
+        throw new Error(data?.message || data?.error || `Erreur ${response.status}`)
+      }
+      throw new Error(`Erreur ${response.status}`)
+    }
+
+    const dekEncrypted = response.headers.get('X-DEK-Encrypted') || ''
+    const iv = response.headers.get('X-IV') || ''
+    if (!dekEncrypted || !iv) {
+      throw new Error('Métadonnées de déchiffrement manquantes.')
+    }
+
+    const encryptedBlob = await response.blob()
+    const ivBytes = base64ToBytes(iv)
+
+    const needsPassword = base64ToBytes(dekEncrypted).byteLength !== 32
+    const passphrase = needsPassword ? (prompt('Mot de passe du partage:') || '') : ''
+
+    const dek = await resolveDekKey(dekEncrypted, ivBytes, passphrase)
+    const decryptedBlob = await decryptFileInChunks(encryptedBlob, dek, ivBytes)
+
+    const downloadName = extractFileName(response.headers)
+    const url = URL.createObjectURL(decryptedBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = downloadName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Erreur downloadReceivedShare:', err)
+    alert(err instanceof Error ? err.message : 'Erreur lors du téléchargement')
+  }
+}
 
 onMounted(() => {
   shareStore.fetchSharedDocuments()
+  shareStore.fetchReceivedShares()
 })
 </script>
 
 <template>
   <div class="shared-documents-view">
+
+    <div class="tabs">
+      <button class="tab" :class="{ active: activeTab === 'sent' }" @click="activeTab = 'sent'">
+        Mes partages
+      </button>
+      <button class="tab" :class="{ active: activeTab === 'received' }" @click="activeTab = 'received'">
+        Partages reçus
+      </button>
+    </div>
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -44,8 +171,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Liste des partages -->
-    <div class="shares-section">
+    <!-- Liste des partages envoyés -->
+    <div class="shares-section" v-if="activeTab === 'sent'">
       <div class="table-container">
         <table class="shares-table">
           <thead>
@@ -60,7 +187,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="share in filteredDocuments" :key="share.id">
+            <tr v-for="share in filteredSent" :key="share.id">
               <td>
                 <div class="document-cell">
                   <svg class="file-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -117,7 +244,7 @@ onMounted(() => {
       </div>
 
       <!-- Quand ya rien on affiche ça -->
-      <div v-if="filteredDocuments.length === 0" class="empty-state">
+      <div v-if="filteredSent.length === 0" class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-icon">
           <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 6.65685 16.3431 8 18 8Z" stroke="currentColor" stroke-width="2"/>
           <path d="M6 15C7.65685 15 9 13.6569 9 12C9 10.3431 7.65685 9 6 9C4.34315 9 3 10.3431 3 12C3 13.6569 4.34315 15 6 15Z" stroke="currentColor" stroke-width="2"/>
@@ -125,6 +252,84 @@ onMounted(() => {
         </svg>
         <h3>Aucun partage trouvé</h3>
         <p>Créez votre premier partage pour commencer</p>
+      </div>
+    </div>
+
+    <!-- Liste des partages reçus -->
+    <div class="shares-section" v-else>
+      <div class="table-container">
+        <table class="shares-table">
+          <thead>
+            <tr>
+              <th>Document</th>
+              <th>Propriétaire</th>
+              <th>Créé le</th>
+              <th>Expire le</th>
+              <th>Accès</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="share in filteredReceived" :key="share.id">
+              <td>
+                <div class="document-cell">
+                  <svg class="file-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V9L13 2ZM18 20H6V4H12V10H18V20Z" fill="currentColor"/>
+                  </svg>
+                  <span class="document-name">{{ share.documentName }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="recipient-cell">
+                  <svg class="user-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z" fill="currentColor"/>
+                    <path d="M12 14C8.13 14 5 15.57 5 17.5V20H19V17.5C19 15.57 15.87 14 12 14Z" fill="currentColor"/>
+                  </svg>
+                  {{ share.owner }}
+                </div>
+              </td>
+              <td class="date-cell">{{ share.createdAt }}</td>
+              <td class="date-cell">{{ share.expiresAt }}</td>
+              <td>
+                <div class="access-cell">
+                  <span class="access-badge" :class="share.view_count >= share.maxAccess && share.maxAccess ? 'access-limit-reached' : ''" :style="{ backgroundColor: (share.view_count >= share.maxAccess && share.maxAccess) ? '#ff444420' : '#007bff20', color: (share.view_count >= share.maxAccess && share.maxAccess) ? '#ff4444' : '#007bff' }">
+                    {{ share.view_count }} / {{ share.maxAccess || '∞' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge" :style="{ backgroundColor: shareStore.getStatusColor(share.status) + '20', color: shareStore.getStatusColor(share.status) }">
+                  {{ shareStore.getStatusText(share.status) }}
+                </span>
+              </td>
+              <td>
+                <div class="actions-cell">
+                  <button @click="downloadReceivedShare(share.token)" class="action-btn" title="Télécharger">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 20H19V18H5V20ZM12 2L12 14M12 14L8 10M12 14L16 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button @click="shareStore.openShareLink({ id: share.id, documentName: share.documentName, recipient: share.owner, createdAt: share.createdAt, expiresAt: share.expiresAt, accessType: 'download', hasPassword: false, link: share.link, token: share.token, accessCount: 0, maxAccess: share.maxAccess, view_count: share.view_count, status: share.status } as any)" class="action-btn" title="Copier le lien">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="filteredReceived.length === 0" class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-icon">
+          <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 6.65685 16.3431 8 18 8Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M6 15C7.65685 15 9 13.6569 9 12C9 10.3431 7.65685 9 6 9C4.34315 9 3 10.3431 3 12C3 13.6569 4.34315 15 6 15Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M18 22C19.6569 22 21 20.6569 21 19C21 17.3431 19.6569 16 18 16C16.3431 16 15 17.3431 15 19C15 20.6569 16.3431 22 18 22Z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <h3>Aucun partage reçu</h3>
+        <p>Les partages internes reçus apparaîtront ici</p>
       </div>
     </div>
 
@@ -149,6 +354,27 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+}
+
+.tab {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 2px solid var(--border-input-color);
+  background: white;
+  color: var(--primary-active-color);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: #007bff10;
 }
 
 .stat-icon svg {
