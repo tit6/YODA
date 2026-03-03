@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { jwtDecode } from 'jwt-decode'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -10,6 +11,12 @@ const verificationCode = ref('')
 const useRecoveryCode = ref(false)
 const error = ref('')
 const isLoading = ref(false)
+
+type TokenJWT = {
+  a2f: number
+  admin?: number
+  is_admin?: number
+}
 
 const verify2FA = async () => {
   error.value = ''
@@ -45,8 +52,16 @@ const verify2FA = async () => {
       // Remplacer l'ancien token par le nouveau
       localStorage.setItem('auth_token', data.token)
       authStore.token = data.token
-      authStore.requires_a2f = false
       authStore.isAuthenticated = true
+      try {
+        const decoded = jwtDecode<TokenJWT>(data.token)
+        authStore.requires_a2f = decoded.a2f === 1
+        authStore.is_admin = decoded.is_admin === 1 || decoded.admin === 1
+      } catch (decodeError) {
+        console.error('Erreur décodage JWT:', decodeError)
+        authStore.requires_a2f = false
+        authStore.is_admin = false
+      }
 
       await router.push({name: 'dashboard-documents' })
     } else {

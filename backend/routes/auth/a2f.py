@@ -99,7 +99,7 @@ def validate_a2f():
     if code is None:
         return api_response({"status": "error"}, 401, id_user, "2FA validate failed: missing OTP")
 
-    user = fetch_user_fields(id_user, ("secret_a2f", "statue_a2f"))
+    user = fetch_user_fields(id_user, ("secret_a2f", "statue_a2f", "is_admin"))
     if user is None:
         return api_response({"status": "error"}, 402, id_user, "2FA validate failed: user not found")
     if user["secret_a2f"] == "Null" or user.get("statue_a2f") != 2:
@@ -108,10 +108,11 @@ def validate_a2f():
     key_decrypted = aes256_decrypt(user["secret_a2f"])
     totp = pyotp.TOTP(key_decrypted)
     if totp.verify(code):
-            token = encode_jwt({"id": id_user, "a2f" : 0}, expires_in=3600)
-            message = "Login successful with 2FA"
-            
-            return api_response({"status": "success", "token": token}, 200, id_user, message)
+        admin_flag = int(bool(user.get("is_admin", 0)))
+        token = encode_jwt({"id": id_user, "a2f": 0, "admin": admin_flag, "is_admin": admin_flag}, expires_in=3600)
+        message = "Login successful with 2FA"
+
+        return api_response({"status": "success", "token": token}, 200, id_user, message)
 
     return api_response({'success': "error"}, 401, id_user, "2FA validate failed: invalid OTP")
 

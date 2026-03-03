@@ -14,9 +14,20 @@ type SessionJson = {
 }
 
 interface TokenJWT {
-    id: number
-    a2f: number
-    exp: number
+  id: number
+  a2f: number
+  exp: number
+  admin?: number
+  is_admin?: number
+}
+
+function decodeTokenClaims(token: string) {
+  const decoded = jwtDecode<TokenJWT>(token)
+
+  return {
+    requiresA2F: decoded.a2f === 1,
+    isAdmin: decoded.is_admin === 1 || decoded.admin === 1,
+  }
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -25,10 +36,12 @@ export const useAuthStore = defineStore('auth', {
     const email = localStorage.getItem('auth_email') || ''
 
     let requiresA2F = false
+    let isAdmin = false
     if (token) {
       try {
-        const decoded = jwtDecode<TokenJWT>(token)
-        requiresA2F = decoded.a2f === 1
+        const claims = decodeTokenClaims(token)
+        requiresA2F = claims.requiresA2F
+        isAdmin = claims.isAdmin
       } catch (err) {
         console.warn("JWT invalide ou expiré", err)
       }
@@ -37,6 +50,7 @@ export const useAuthStore = defineStore('auth', {
     return {
       isAuthenticated: !!token,
       requires_a2f: requiresA2F,
+      is_admin: isAdmin,
       error: '',
       token,
       email
@@ -114,11 +128,13 @@ export const useAuthStore = defineStore('auth', {
 
           // mettre à jour le 2FA à partir du JWT
           try {
-            const decoded = jwtDecode<TokenJWT>(data.token)
-            this.requires_a2f = decoded.a2f === 1
+            const claims = decodeTokenClaims(data.token)
+            this.requires_a2f = claims.requiresA2F
+            this.is_admin = claims.isAdmin
           } catch (err) {
             console.error("Erreur décodage JWT:", err)
             this.requires_a2f = false
+            this.is_admin = false
           }
 
           this.isAuthenticated = true
@@ -151,6 +167,7 @@ export const useAuthStore = defineStore('auth', {
       if (!token) {
         this.isAuthenticated = false
         this.requires_a2f = false
+        this.is_admin = false
         return false
       }
 
@@ -162,6 +179,10 @@ export const useAuthStore = defineStore('auth', {
           this.logout()
           return false
         }
+
+        const claims = decodeTokenClaims(token)
+        this.requires_a2f = claims.requiresA2F
+        this.is_admin = claims.isAdmin
 
         return true
 
@@ -175,6 +196,7 @@ export const useAuthStore = defineStore('auth', {
       this.isAuthenticated = false
       this.token = ''
       this.requires_a2f = false
+      this.is_admin = false
       this.email = ''
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_email')

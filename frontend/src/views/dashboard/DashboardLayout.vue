@@ -29,6 +29,10 @@ const logout = () => {
   router.push('login')
 }
 
+const goToAdmin = () => {
+  router.push({ name: 'dashboard-admin' })
+}
+
 const isActive = (routePath: string) => {
   return route.path === routePath
 }
@@ -120,6 +124,15 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
+          <button
+            v-if="authStore.is_admin"
+            class="admin-shortcut"
+            type="button"
+            @click="goToAdmin"
+          >
+            Admin
+          </button>
+
           <!-- User Menu -->
           <div class="user-menu" @click="showUserMenu = !showUserMenu">
             <div class="user-avatar">
@@ -339,6 +352,22 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-lg);
+}
+
+.admin-shortcut {
+  padding: 10px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.admin-shortcut:hover {
+  background: #115e59;
 }
 
 .icon-btn {

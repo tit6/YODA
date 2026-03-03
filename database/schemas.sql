@@ -14,6 +14,8 @@ CREATE TABLE `users` (
   `secret_a2f` varchar(128) DEFAULT NULL,
   `statue_a2f` INT DEFAULT '0' NOT NULL,
   `public_key` TEXT DEFAULT NULL,
+  `is_ban` int DEFAULT 0,
+  `is_admin` int DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `secret_a2f_UNIQUE` (`secret_a2f`)
@@ -128,5 +130,26 @@ CREATE TABLE `failed_login_attempts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- données de test
-INSERT INTO users VALUES (1,'admin', 'prenom','test@gmail.com','$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y','Null', 0, 'Null');
-
+INSERT INTO users (
+  id,
+  nom,
+  prenom,
+  email,
+  mdp,
+  secret_a2f,
+  statue_a2f,
+  public_key,
+  is_ban,
+  is_admin
+) VALUES (
+  1,
+  'admin',
+  'prenom',
+  'test@gmail.com',
+  '$2b$12$9Y1fjD.S3knC7Yu9l3IQ9Ox.02e.tt83R7enbDyYhSN4Cp2QExK0y',
+  'Null',
+  0,
+  'Null',
+  0,
+  1
+);

@@ -8,6 +8,7 @@ import DocumentsView from '../views/dashboard/document/DocumentsView.vue'
 import SharedDocumentsView from '../views/dashboard/shared/SharedDocumentsView.vue'
 import public_shared from '../views/dashboard/public_share/PublicSharedView.vue'
 import AccountView from '../views/dashboard/account/AccountView.vue'
+import AdminView from '../views/dashboard/admin.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -73,6 +74,12 @@ const router = createRouter({
                   name: 'dashboard-account',
                   component: AccountView,
                   meta: { title: 'Mon compte' }
+              },
+              {
+                path : 'admin',
+                name : 'dashboard-admin',
+                component : AdminView,
+                meta: { title: 'Admin', requiresAdmin: true }
               }
 
 
@@ -98,10 +105,7 @@ const router = createRouter({
 
 router.beforeEach((to, from) => {
   const authStore = useAuthStore()
-
-    const auth = useAuthStore()
-
-    auth.checkAuth()
+  authStore.checkAuth()
 
   if (to.name === 'shared-dashboard') {
     return true
@@ -117,6 +121,10 @@ router.beforeEach((to, from) => {
     return { name: 'dashboard-documents'}
   } else if (!to.meta.requiresGuest && !authStore.isAuthenticated) {
     return { name: 'login'}
+  }
+
+  if (to.meta.requiresAdmin && !authStore.is_admin) {
+    return { name: 'dashboard-documents' }
   }
 
   return true
