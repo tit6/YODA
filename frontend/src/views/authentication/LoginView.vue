@@ -13,6 +13,14 @@ const name = ref('')
 const firstName = ref('')
 const submitted = ref(false)
 
+// Champs d'adresse
+const numero = ref('')
+const rue = ref('')
+const codePostal = ref('')
+const ville = ref('')
+const pays = ref('')
+const complement = ref('')
+
 const passwordStrength = computed(() => {
   if (isLogin.value || !password.value) return 0
 
@@ -82,7 +90,13 @@ const handleSubmit = async () => {
       prenom: firstName.value,
       email: email.value,
       password: password.value,
-      second_password: confirmPassword.value
+      second_password: confirmPassword.value,
+      numero: numero.value,
+      rue: rue.value,
+      code_postal: codePostal.value,
+      ville: ville.value,
+      pays: pays.value,
+      complement: complement.value
     })
 
     if (success) {
@@ -185,6 +199,72 @@ const handleSubmit = async () => {
               <p style="color: red; font-size: 15px;" v-if="submitted && password !== confirmPassword">Les mots de passe ne correspondent pas.</p>
             </div>
 
+            <!-- Adresse -->
+            <div v-if="!isLogin" class="address-section">
+              <h3 class="address-title">Adresse postale (optionnel)</h3>
+              <div class="input-row">
+                <div class="input-group" style="flex: 0 0 30%;">
+                  <label for="numero">Numéro</label>
+                  <input
+                    id="numero"
+                    v-model="numero"
+                    type="text"
+                    placeholder="42"
+                  />
+                </div>
+                <div class="input-group" style="flex: 1;">
+                  <label for="rue">Rue</label>
+                  <input
+                    id="rue"
+                    v-model="rue"
+                    type="text"
+                    placeholder="Rue de la République"
+                  />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label for="complement">Complément d'adresse</label>
+                <input
+                  id="complement"
+                  v-model="complement"
+                  type="text"
+                  placeholder="Appartement, bâtiment, etc."
+                />
+              </div>
+
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="codePostal">Code postal</label>
+                  <input
+                    id="codePostal"
+                    v-model="codePostal"
+                    type="text"
+                    placeholder="75001"
+                  />
+                </div>
+                <div class="input-group">
+                  <label for="ville">Ville</label>
+                  <input
+                    id="ville"
+                    v-model="ville"
+                    type="text"
+                    placeholder="Paris"
+                  />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label for="pays">Pays</label>
+                <input
+                  id="pays"
+                  v-model="pays"
+                  type="text"
+                  placeholder="France"
+                />
+              </div>
+            </div>
+
             <button type="submit" class="submit-btn">
               {{ isLogin ? 'Se connecter' : "Créer mon compte" }}
             </button>
@@ -214,9 +294,8 @@ const handleSubmit = async () => {
   margin: 0 auto;
   padding: 60px 40px;
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .tab {
@@ -364,5 +443,21 @@ const handleSubmit = async () => {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-top: var(--space-xs);
+}
+
+/* Address section */
+.address-section {
+  padding: var(--space-lg);
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: var(--border-width) solid var(--border-color);
+  margin: var(--space-md) 0;
+}
+
+.address-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
 }
 </style>

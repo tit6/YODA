@@ -10,6 +10,7 @@ name_user = Blueprint("name_user", __name__)
 statue_session = Blueprint("statue_session", __name__)
 change_password = Blueprint("change_password", __name__)
 public_key_bp = Blueprint("public_key", __name__)
+address_bp = Blueprint("address", __name__)
 
 @name_user.route("/name_user", methods=["GET"])
 def name_users():
@@ -119,4 +120,68 @@ def save_public_key():
     except Exception as exc:
         return api_response({"status": "error"}, 500, user_id, f"Error saving public key: {exc}")
 
+
+@address_bp.route("/user/address", methods=["GET"])
+def get_address():
+    """Récupère l'adresse de l'utilisateur"""
+    user_id = g.user["id"]
+    try:
+        result = fetch_one("SELECT numero, rue, code_postal, ville, pays, complement FROM adresses WHERE id_users = %s", (user_id,))
+        if result is None:
+            return api_response({
+                "status": "success",
+                "data": None
+            }, 200, user_id, "No address found")
+
+        return api_response({
+            "status": "success",
+            "data": {
+                "numero": result["numero"],
+                "rue": result["rue"],
+                "code_postal": result["code_postal"],
+                "ville": result["ville"],
+                "pays": result["pays"],
+                "complement": result["complement"]
+            }
+        }, 200, user_id, "Address retrieved")
+
+    except Exception as exc:
+        return api_response({"status": "error"}, 500, user_id, f"Error retrieving address: {exc}")
+
+
+@address_bp.route("/user/address", methods=["POST", "PUT"])
+def save_address():
+    """Sauvegarde ou met à jour l'adresse de l'utilisateur"""
+    user_id = g.user["id"]
+    try:
+        numero = request.json.get("numero", "")
+        rue = request.json.get("rue", "")
+        code_postal = request.json.get("code_postal", "")
+        ville = request.json.get("ville", "")
+        pays = request.json.get("pays", "")
+        complement = request.json.get("complement", "")
+
+        # Vérifier si l'utilisateur a déjà une adresse
+        existing = fetch_one("SELECT id FROM adresses WHERE id_users = %s", (user_id,))
+        
+        if existing:
+            # Mise à jour de l'adresse existante
+            rowcount, _ = execute_write(
+                "UPDATE adresses SET numero = %s, rue = %s, code_postal = %s, ville = %s, pays = %s, complement = %s WHERE id_users = %s",
+                (numero, rue, code_postal, ville, pays, complement, user_id)
+            )
+        else:
+            # Création d'une nouvelle adresse
+            rowcount, _ = execute_write(
+                "INSERT INTO adresses (id_users, numero, rue, code_postal, ville, pays, complement) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (user_id, numero, rue, code_postal, ville, pays, complement)
+            )
+
+        if rowcount == 0:
+            return api_response({"status": "error"}, 500, user_id, "Failed to save address")
+
+        return api_response({"status": "success"}, 200, user_id, "Address saved")
+
+    except Exception as exc:
+        return api_response({"status": "error"}, 500, user_id, f"Error saving address: {exc}")
 

@@ -19,6 +19,14 @@ def register():
     email = request.json.get("email")
     password = request.json.get("password")
     second_password = request.json.get("second_password")
+    
+    # Champs d'adresse
+    numero = request.json.get("numero", "")
+    rue = request.json.get("rue", "")
+    code_postal = request.json.get("code_postal", "")
+    ville = request.json.get("ville", "")
+    pays = request.json.get("pays", "")
+    complement = request.json.get("complement", "")
 
     print(f"Registering user: {name}, {email}, {password}")
     if not name or not email or not password:
@@ -45,9 +53,16 @@ def register():
     hash_str = hash_bytes.decode("utf-8")
 
     try:
+        # Insertion de l'utilisateur
         rowcount, user_id = execute_write(
             "INSERT INTO users (nom, prenom, email, mdp) VALUES (%s, %s, %s, %s)",
             (name, prenom, email, hash_str))
+        
+        # Insertion de l'adresse si au moins un champ est rempli
+        if any([numero, rue, code_postal, ville, pays, complement]):
+            execute_write(
+                "INSERT INTO adresses (id_users, numero, rue, code_postal, ville, pays, complement) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (user_id, numero, rue, code_postal, ville, pays, complement))
     
         return jsonify({"status": "success", "user_id": user_id}), 200
     except Exception as exc:

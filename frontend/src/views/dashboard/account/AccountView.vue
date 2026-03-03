@@ -28,6 +28,17 @@ const confirmNewPassword = ref('')
 const passwordChangeSubmitted = ref(false)
 const passwordChangeError = ref('')
 
+// Champs d'adresse
+const numero = ref('')
+const rue = ref('')
+const codePostal = ref('')
+const ville = ref('')
+const pays = ref('')
+const complement = ref('')
+const isEditingAddress = ref(false)
+const addressSaveError = ref('')
+const isSavingAddress = ref(false)
+
 const passwordStrength = computed(() => {
   if (!newPassword.value) return 0
 
@@ -270,8 +281,80 @@ async function handleImportPrivateKey(file: File, passphrase: string) {
   }
 }
 
+async function loadAddress() {
+  try {
+    const response = await fetch('/api/user/address', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      credentials: 'include'
+    })
+
+    const result = await response.json()
+
+    if (response.ok && result.status === 'success' && result.data) {
+      numero.value = result.data.numero || ''
+      rue.value = result.data.rue || ''
+      codePostal.value = result.data.code_postal || ''
+      ville.value = result.data.ville || ''
+      pays.value = result.data.pays || ''
+      complement.value = result.data.complement || ''
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'adresse:', error)
+  }
+}
+
+async function saveAddress() {
+  isSavingAddress.value = true
+  addressSaveError.value = ''
+
+  try {
+    const response = await fetch('/api/user/address', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        numero: numero.value,
+        rue: rue.value,
+        code_postal: codePostal.value,
+        ville: ville.value,
+        pays: pays.value,
+        complement: complement.value
+      }),
+      credentials: 'include'
+    })
+
+    const data = await response.json()
+
+    if (response.ok && data.status === 'success') {
+      alert('Adresse sauvegardée avec succès')
+      isEditingAddress.value = false
+    } else {
+      addressSaveError.value = 'Erreur lors de la sauvegarde de l\'adresse'
+    }
+  } catch (error) {
+    console.error('Erreur:', error)
+    addressSaveError.value = 'Erreur de connexion'
+  } finally {
+    isSavingAddress.value = false
+  }
+}
+
+function cancelEditAddress() {
+  isEditingAddress.value = false
+  loadAddress()
+}
+
 onMounted(() => {
   status_a2f();
+  loadAddress();
 })
 </script>
 
@@ -340,6 +423,97 @@ onMounted(() => {
         </div>
         <button class="action-btn" id="a2f_button" @click="check_password_a2f"> </button>
       </div>
+    </div>
+
+    <div class="section">
+      <h3 class="section-title">Adresse postale</h3>
+      <div v-if="!isEditingAddress" class="address-display">
+        <div v-if="!numero && !rue && !ville && !pays" class="no-address">
+          <p>Aucune adresse enregistrée</p>
+          <button class="action-btn" @click="isEditingAddress = true">Ajouter une adresse</button>
+        </div>
+        <div v-else class="address-info">
+          <p v-if="numero || rue">{{ numero }} {{ rue }}</p>
+          <p v-if="complement">{{ complement }}</p>
+          <p v-if="codePostal || ville">{{ codePostal }} {{ ville }}</p>
+          <p v-if="pays">{{ pays }}</p>
+          <button class="action-btn" @click="isEditingAddress = true">Modifier</button>
+        </div>
+      </div>
+      <form v-else @submit.prevent="saveAddress" class="address-form">
+        <div class="input-row">
+          <div class="input-group" style="flex: 0 0 30%;">
+            <label for="numero">Numéro</label>
+            <input
+              id="numero"
+              v-model="numero"
+              type="text"
+              placeholder="42"
+            />
+          </div>
+          <div class="input-group" style="flex: 1;">
+            <label for="rue">Rue</label>
+            <input
+              id="rue"
+              v-model="rue"
+              type="text"
+              placeholder="Rue de la République"
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="complement">Complément d'adresse</label>
+          <input
+            id="complement"
+            v-model="complement"
+            type="text"
+            placeholder="Appartement, bâtiment, etc."
+          />
+        </div>
+
+        <div class="input-row">
+          <div class="input-group">
+            <label for="codePostal">Code postal</label>
+            <input
+              id="codePostal"
+              v-model="codePostal"
+              type="text"
+              placeholder="75001"
+            />
+          </div>
+          <div class="input-group">
+            <label for="ville">Ville</label>
+            <input
+              id="ville"
+              v-model="ville"
+              type="text"
+              placeholder="Paris"
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="pays">Pays</label>
+          <input
+            id="pays"
+            v-model="pays"
+            type="text"
+            placeholder="France"
+          />
+        </div>
+
+        <p v-if="addressSaveError" class="error-message">{{ addressSaveError }}</p>
+
+        <div class="button-group">
+          <button type="submit" class="submit-btn" :disabled="isSavingAddress">
+            {{ isSavingAddress ? 'Sauvegarde...' : 'Sauvegarder' }}
+          </button>
+          <button type="button" class="cancel-btn" @click="cancelEditAddress" :disabled="isSavingAddress">
+            Annuler
+          </button>
+        </div>
+      </form>
     </div>
 
     <div class="section">
@@ -662,6 +836,72 @@ onMounted(() => {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin: var(--space-xs) 0 0 0;
+}
+
+/* Address Section */
+.address-display {
+  padding: var(--space-xl);
+  background-color: var(--bg-input);
+  border: var(--border-width) solid var(--border-input-color);
+  border-radius: var(--border-radius-md);
+}
+
+.no-address {
+  text-align: center;
+  padding: var(--space-xl);
+}
+
+.no-address p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.address-info p {
+  color: var(--text-primary);
+  margin: var(--space-sm) 0;
+  line-height: 1.6;
+}
+
+.address-info button {
+  margin-top: var(--space-lg);
+}
+
+.address-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.input-row {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.button-group {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.cancel-btn {
+  padding: 14px var(--space-xl);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.cancel-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 </style>

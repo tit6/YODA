@@ -1,6 +1,10 @@
+DROP TABLE IF EXISTS `shared_acces_log`;
+DROP TABLE IF EXISTS `shared_files`;
 DROP TABLE IF EXISTS `documents`;
 DROP TABLE IF EXISTS `folders`;
 DROP TABLE IF EXISTS `logs`;
+DROP TABLE IF EXISTS `adresses`;
+DROP TABLE IF EXISTS `failed_login_attempts`;
 DROP TABLE IF EXISTS `users`;
 
 
@@ -18,6 +22,22 @@ CREATE TABLE `users` (
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `secret_a2f_UNIQUE` (`secret_a2f`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- 1.5) adresses
+CREATE TABLE `adresses` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `id_users` int NOT NULL,
+  `numero` varchar(10) DEFAULT NULL,
+  `rue` varchar(255) DEFAULT NULL,
+  `code_postal` varchar(10) DEFAULT NULL,
+  `ville` varchar(100) DEFAULT NULL,
+  `pays` varchar(100) DEFAULT NULL,
+  `complement` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`),
+  KEY `id_users_idx` (`id_users`),
+  CONSTRAINT `fk_adresses_users` FOREIGN KEY (`id_users`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- 2) logs
 CREATE TABLE `logs` (
