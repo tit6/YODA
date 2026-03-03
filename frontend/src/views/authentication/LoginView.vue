@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const isLogin = ref(true)
 const email = ref('')
@@ -12,6 +13,13 @@ const confirmPassword = ref('')
 const name = ref('')
 const firstName = ref('')
 const submitted = ref(false)
+
+onMounted(() => {
+  if (route.query.disabled === '1') {
+    authStore.error = 'Votre compte a été désactivé'
+    submitted.value = true
+  }
+})
 
 const passwordStrength = computed(() => {
   if (isLogin.value || !password.value) return 0

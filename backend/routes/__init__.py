@@ -8,6 +8,7 @@ from .user import name_user, statue_session, change_password, public_key_bp
 from .documents import documents_bp
 from .share.share import share
 from .folder import folder_bp
+from .admin import admin_bp
 
 def register_blueprints(app):
     api_prefix = "/api"
@@ -28,3 +29,4 @@ def register_blueprints(app):
     app.register_blueprint(docs_bp)
     app.register_blueprint(share, url_prefix=api_prefix)
     app.register_blueprint(folder_bp, url_prefix=api_prefix)
+    app.register_blueprint(admin_bp, url_prefix=api_prefix)

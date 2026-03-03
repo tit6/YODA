@@ -16,6 +16,7 @@ type SessionJson = {
 interface TokenJWT {
     id: number
     a2f: number
+    is_admin: number
     exp: number
 }
 
@@ -25,10 +26,12 @@ export const useAuthStore = defineStore('auth', {
     const email = localStorage.getItem('auth_email') || ''
 
     let requiresA2F = false
+    let isAdmin = false
     if (token) {
       try {
         const decoded = jwtDecode<TokenJWT>(token)
         requiresA2F = decoded.a2f === 1
+        isAdmin = decoded.is_admin === 1
       } catch (err) {
         console.warn("JWT invalide ou expiré", err)
       }
@@ -37,6 +40,7 @@ export const useAuthStore = defineStore('auth', {
     return {
       isAuthenticated: !!token,
       requires_a2f: requiresA2F,
+      isAdmin,
       error: '',
       token,
       email
@@ -91,7 +95,11 @@ export const useAuthStore = defineStore('auth', {
 
         if (!res.ok) {
           const errorData = await res.json()
-          this.error = errorData.error || 'Mots de passe ou adresse email incorrects.'
+          if (errorData.message === 'Votre compte a \u00e9t\u00e9 d\u00e9sactiv\u00e9' || errorData.message === 'Votre compte a été désactivé') {
+            this.error = 'Votre compte a été désactivé'
+          } else {
+            this.error = errorData.error || errorData.message || 'Mots de passe ou adresse email incorrects.'
+          }
           this.isAuthenticated = false
           return
         }
@@ -116,6 +124,7 @@ export const useAuthStore = defineStore('auth', {
           try {
             const decoded = jwtDecode<TokenJWT>(data.token)
             this.requires_a2f = decoded.a2f === 1
+            this.isAdmin = decoded.is_admin === 1
           } catch (err) {
             console.error("Erreur décodage JWT:", err)
             this.requires_a2f = false
@@ -175,6 +184,7 @@ export const useAuthStore = defineStore('auth', {
       this.isAuthenticated = false
       this.token = ''
       this.requires_a2f = false
+      this.isAdmin = false
       this.email = ''
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_email')

@@ -8,6 +8,7 @@ import DocumentsView from '../views/dashboard/document/DocumentsView.vue'
 import SharedDocumentsView from '../views/dashboard/shared/SharedDocumentsView.vue'
 import public_shared from '../views/dashboard/public_share/PublicSharedView.vue'
 import AccountView from '../views/dashboard/account/AccountView.vue'
+import AdminView from '../views/dashboard/admin/AdminView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -73,6 +74,12 @@ const router = createRouter({
                   name: 'dashboard-account',
                   component: AccountView,
                   meta: { title: 'Mon compte' }
+              },
+              {
+                  path: 'admin',
+                  name: 'dashboard-admin',
+                  component: AdminView,
+                  meta: { title: 'Administration' }
               }
 
 

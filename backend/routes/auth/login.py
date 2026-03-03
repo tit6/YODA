@@ -21,11 +21,14 @@ def login():
         else:
             return jsonify({"status": "error"}), 403
 
+    if not request.json:
+        return jsonify({"status": "error"}), 400
+
     email = request.json.get("email")
     password = request.json.get("password")
 
     try :
-        mdp = fetch_one("SELECT id, mdp FROM users WHERE email = %s", (email,))
+        mdp = fetch_one("SELECT id, mdp, is_admin, is_active FROM users WHERE email = %s", (email,))
         if mdp is None:
             return jsonify({"status": "error"}), 403
         
@@ -49,11 +52,17 @@ def login():
             if existing:
                 execute_write("DELETE FROM failed_login_attempts WHERE ip = %s", (request.remote_addr,))
 
+            # Vérifier si le compte est activé (même message générique pour ne pas révéler l'existence du compte)
+            if not mdp.get("is_active", 1):
+                return jsonify({"status": "error"}), 403
+
+            jwt_payload = {"id": mdp["id"], "is_admin": mdp.get("is_admin", 0)}
+
             if check_a2f_status(mdp["id"]) == 2:
-                 token = encode_jwt({"id": mdp["id"], "a2f" : 1}, expires_in=3600)
+                 token = encode_jwt({**jwt_payload, "a2f" : 1}, expires_in=3600)
                  message = "Login successful with 2FA wait a2f verification"
             else :
-                token = encode_jwt({"id": mdp["id"], "a2f" : 0}, expires_in=3600)
+                token = encode_jwt({**jwt_payload, "a2f" : 0}, expires_in=3600)
                 message = "Login successful without 2FA"
             
             return api_response({"status": "success", "token": token}, 200, mdp["id"], message)

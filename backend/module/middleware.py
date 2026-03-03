@@ -2,6 +2,7 @@ from flask import request, jsonify, g
 import jwt
 from jwt import ExpiredSignatureError, DecodeError
 from .config import SECRET_KEY
+from .db import fetch_one
 PUBLIC_PATHS = [
     "/api/login",
     "/api/register",
@@ -45,5 +46,10 @@ def auth_middleware():
 
     if payload.get("a2f") == 1 and path not in TEMP_PATHS:
         return jsonify({"error": "Invalid token payload"}), 402
+
+    # Vérifier que le compte est toujours actif en BDD
+    user_row = fetch_one("SELECT is_active FROM users WHERE id = %s", (payload.get("id"),))
+    if user_row and not user_row["is_active"]:
+        return jsonify({"error": "Votre compte a été désactivé"}), 460
 
     g.user = payload  # pour utilisation dans les routes
