@@ -357,3 +357,67 @@ jobs:
       - name: Stop containers
         if: always()
         run: docker compose down -v
+
+  deploy:
+    needs: test-containers
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.prod
+          push: true
+          tags: ghcr.io/tit6/yoda-backend:latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: ghcr.io/tit6/yoda-frontend:latest
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ampynjord.bzh
+          username: debian
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GHCR_TOKEN
+          script: |
+            # Login to GHCR
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u github-actions --password-stdin
+
+            cd ~/yoda
+
+            # Pull latest images
+            docker pull ghcr.io/tit6/yoda-frontend:latest
+            docker pull ghcr.io/tit6/yoda-backend:latest
+
+            # Update repo (schema, compose, etc.)
+            git pull origin main
+
+            # Restart services
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
+
+            # Wait and verify
+            sleep 10
+            docker ps --filter "name=yoda-" --format "table {{.Names}}\t{{.Status}}"
